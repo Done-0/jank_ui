@@ -2,7 +2,7 @@
 </script>
 
 <template>
-  <Slot></Slot>
+  <router-view />
 </template>
 
 <style scoped>
