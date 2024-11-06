@@ -1,7 +1,8 @@
 <template>
   <footer 
-    class="fixed bottom-0 left-0 right-0 w-full bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border-t border-gray-200 dark:border-gray-700 transition-transform duration-300"
-    :class="{ 'translate-y-full': isHidden }"
+    v-if="state.isVisible"
+    class="fixed bottom-0 left-0 right-0 w-full backdrop-blur-sm border-t transition-all duration-300"
+    :class="{ 'translate-y-full opacity-0': state.isHidden }"
     @mouseenter="showFooter"
     @mouseleave="hideFooter"
   >
@@ -14,7 +15,7 @@
             alt="Logo" 
             class="h-6 w-auto"
           >
-          <span class="text-lg font-semibold text-gray-700 dark:text-gray-200">
+          <span class="text-lg font-semibold">
             博客社区
           </span>
         </div>
@@ -25,7 +26,7 @@
             <li v-for="(link, index) in navLinks" :key="index">
               <router-link 
                 :to="link.url"
-                class="text-sm text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 transition-colors px-2 py-1 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700"
+                class="text-sm hover:text-muted-foreground transition-colors px-2 py-1 rounded-md hover:bg-muted"
               >
                 {{ link.name }}
               </router-link>
@@ -34,7 +35,7 @@
         </nav>
 
         <!-- 分隔线 -->
-        <div class="w-24 border-t border-gray-200 dark:border-gray-700 my-3"></div>
+        <div class="w-24 border-t my-3"></div>
 
         <!-- 社交链接 -->
         <div class="flex justify-center gap-4 mb-4">
@@ -45,17 +46,17 @@
             target="_blank"
             rel="noopener noreferrer"
             :aria-label="social.name"
-            class="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors group"
+            class="p-2 rounded-md hover:bg-muted transition-colors group"
           >
             <component 
               :is="social.icon" 
-              class="h-5 w-5 text-gray-500 group-hover:text-gray-700 dark:text-gray-400 dark:group-hover:text-gray-200"
+              class="h-5 w-5"
             />
           </a>
         </div>
 
         <!-- 版权信息 -->
-        <p class="text-sm text-gray-500 dark:text-gray-400">
+        <p class="text-sm">
           &copy; {{ new Date().getFullYear() }} 博客社区. All rights reserved.
         </p>
       </div>
@@ -67,10 +68,20 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import { 
   GithubIcon, 
-  MessageCircleIcon, // 替代微信
-  ShareIcon,  // 替代微博
-  RssIcon  // 添加 RSS 订阅图标
+  MessageCircleIcon,
+  ShareIcon,
+  RssIcon
 } from 'lucide-vue-next'
+
+interface FooterState {
+  isVisible: boolean
+  isHidden: boolean
+}
+
+const state = ref<FooterState>({
+  isVisible: false,
+  isHidden: true
+})
 
 const navLinks = [
   { name: '首页', url: '/' },
@@ -103,39 +114,56 @@ const socialLinks = [
   }
 ]
 
-// 页脚显示隐藏逻辑
-const isHidden = ref(true)
 let hideTimeout: number | null = null
+
+const throttle = (fn: Function, delay: number) => {
+  let lastTime = 0
+  return (...args: any[]) => {
+    const now = Date.now()
+    if (now - lastTime >= delay) {
+      fn.apply(this, args)
+      lastTime = now
+    }
+  }
+}
 
 const showFooter = () => {
   if (hideTimeout) {
     clearTimeout(hideTimeout)
   }
-  isHidden.value = false
+  state.value.isHidden = false
 }
 
 const hideFooter = () => {
   hideTimeout = setTimeout(() => {
-    isHidden.value = true
+    state.value.isHidden = true
   }, 300) as unknown as number
 }
 
-// 监听滚动事件，在滚动到底部时显示页脚
-const handleScroll = () => {
-  const scrolledToBottom = 
-    window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 100
-  if (scrolledToBottom) {
+const handleScroll = throttle(() => {
+  const scrollPosition = window.scrollY + window.innerHeight
+  const documentHeight = document.documentElement.scrollHeight
+  const threshold = 100
+
+  if (documentHeight - scrollPosition <= threshold) {
+    state.value.isVisible = true
     showFooter()
   } else {
     hideFooter()
+    if (documentHeight - scrollPosition > window.innerHeight) {
+      state.value.isVisible = false
+    }
   }
-}
+}, 100)
 
 onMounted(() => {
   window.addEventListener('scroll', handleScroll)
 })
 
 onUnmounted(() => {
+  if (hideTimeout) {
+    clearTimeout(hideTimeout)
+  }
   window.removeEventListener('scroll', handleScroll)
 })
 </script>

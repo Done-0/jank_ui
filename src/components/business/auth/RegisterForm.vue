@@ -11,53 +11,71 @@ import {
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { toast } from '@/components/ui/toast'
+import {
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog'
 import { toTypedSchema } from '@vee-validate/zod'
 import { useForm } from 'vee-validate'
-import { h } from 'vue'
 import * as z from 'zod'
+import { useAuthStore } from '@/store/modules/auth'
 
-import type { RegisterRequest } from '@/types/auth'
+const emit = defineEmits<{
+  (e: 'success'): void
+  (e: 'switch-to-login'): void
+}>()
 
-// 定义表单验证schema
-const formSchema = toTypedSchema(z.object({
-  email: z.string().min(1, '邮箱是必填项').email('请输入有效的邮箱地址'),
-  password: z.string().min(6, '密码至少6个字符').max(20, '密码最多20个字符'),
-  confirmPassword: z.string()
-    .min(6, '密码至少6个字符')
-    .max(20, '密码最多20个字符'),
-  agreeToTerms: z.boolean().refine(val => val === true, '必须同意条款'),
-}).superRefine((data, ctx) => {
-  if (data.confirmPassword !== data.password) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: ['confirmPassword'],
-      message: '密码不匹配',
-    });
-  }
-}));
+const formSchema = toTypedSchema(
+  z
+    .object({
+      email: z
+        .string()
+        .min(1, '邮箱是必填项')
+        .email('请输入有效的邮箱地址'),
+      password: z
+        .string()
+        .min(6, '密码至少6个字符')
+        .max(20, '密码最多20个字符'),
+      confirmPassword: z
+        .string()
+        .min(6, '密码至少6个字符')
+        .max(20, '密码最多20个字符'),
+      agreeToTerms: z.boolean().refine(val => val === true, '必须同意条款'),
+    })
+    .superRefine((data, ctx) => {
+      if (data.confirmPassword !== data.password) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['confirmPassword'],
+          message: '密码不匹配',
+        })
+      }
+    })
+)
 
-const initialValues: RegisterRequest = {
+const initialValues = {
   email: '',
   password: '',
   confirmPassword: '',
   agreeToTerms: false,
 }
 
-// 使用 useForm hook
-const form = useForm<RegisterRequest>({
+const form = useForm({
   validationSchema: formSchema,
   initialValues,
 })
 
-// 提交处理
-const onSubmit = form.handleSubmit(async (values: RegisterRequest) => {
+const authStore = useAuthStore()
+
+const onSubmit = form.handleSubmit(async (values) => {
   try {
-    // 注册API调用逻辑
+    await authStore.register(values)
     toast({
-      title: '提交的表单数据:',
-      description: h('pre', { class: 'mt-2 w-[340px] rounded-md bg-slate-950 p-4' },
-        h('code', { class: 'text-white' }, JSON.stringify(values, null, 2))),
+      title: '注册成功',
+      description: '账号创建成功！',
     })
+    emit('success')
   } catch (error) {
     toast({
       title: '注册失败',
@@ -66,14 +84,20 @@ const onSubmit = form.handleSubmit(async (values: RegisterRequest) => {
     })
   }
 })
+
+const switchToLogin = () => {
+  emit('switch-to-login')
+}
 </script>
 
 <template>
-  <div class="w-full max-w-md p-8 space-y-6 bg-white rounded-lg shadow-xl">
-    <div class="space-y-2 text-center">
-      <h1 class="text-2xl font-semibold tracking-tight">注册账号</h1>
-      <p class="text-sm text-muted-foreground">输入您的信息以创建新账号</p>
-    </div>
+  <div class="space-y-6">
+    <DialogHeader>
+      <DialogTitle>注册账号</DialogTitle>
+      <DialogDescription>
+        输入您的信息以创建新账号
+      </DialogDescription>
+    </DialogHeader>
 
     <Form :form="form">
       <form class="space-y-4" @submit="onSubmit">
@@ -81,9 +105,10 @@ const onSubmit = form.handleSubmit(async (values: RegisterRequest) => {
           <FormItem>
             <FormLabel>邮箱</FormLabel>
             <FormControl>
-              <Input 
-                type="email" 
-                placeholder="请输入邮箱" 
+              <Input
+                type="email"
+                placeholder="请输入邮箱"
+                autocomplete="email"
                 v-model="field.value"
                 @blur="field.onBlur"
               />
@@ -96,9 +121,10 @@ const onSubmit = form.handleSubmit(async (values: RegisterRequest) => {
           <FormItem>
             <FormLabel>密码</FormLabel>
             <FormControl>
-              <Input 
-                type="password" 
-                placeholder="请输入密码" 
+              <Input
+                type="password"
+                placeholder="请输入密码"
+                autocomplete="new-password"
                 v-model="field.value"
                 @blur="field.onBlur"
               />
@@ -111,9 +137,10 @@ const onSubmit = form.handleSubmit(async (values: RegisterRequest) => {
           <FormItem>
             <FormLabel>确认密码</FormLabel>
             <FormControl>
-              <Input 
-                type="password" 
-                placeholder="请再次输入密码" 
+              <Input
+                type="password"
+                placeholder="请再次输入密码"
+                autocomplete="new-password"
                 v-model="field.value"
                 @blur="field.onBlur"
               />
@@ -125,9 +152,7 @@ const onSubmit = form.handleSubmit(async (values: RegisterRequest) => {
         <FormField v-slot="{ field }" name="agreeToTerms">
           <FormItem class="flex items-center space-x-2">
             <FormControl>
-              <Checkbox
-                v-model="field.value"
-              />
+              <Checkbox v-model="field.value" />
             </FormControl>
             <div class="leading-none">
               <FormLabel class="text-sm font-normal">我同意条款和条件</FormLabel>
@@ -140,7 +165,13 @@ const onSubmit = form.handleSubmit(async (values: RegisterRequest) => {
     </Form>
 
     <div class="text-center text-sm">
-      <router-link :to="{ name: 'Login' }" class="text-primary hover:underline">已有账号？立即登录</router-link>
+      <a 
+        href="#" 
+        class="text-primary hover:underline"
+        @click.prevent="switchToLogin"
+      >
+        已有账号？立即登录
+      </a>
     </div>
   </div>
 </template>

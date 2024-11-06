@@ -10,6 +10,12 @@ export interface LoginResponse {
   refresh_token: UserInfo;
 }
 
+export interface RegisterRequest {
+  email: string
+  password: string
+  confirmPassword: string
+  agreeToTerms: boolean
+}
 export interface UserInfo {
   email: string;
   nickname: string;
@@ -30,3 +36,9 @@ export interface RegisterRequest {
   agreeToTerms: boolean;
 }
 
+export interface UserProfile {
+  id: string
+  email: string
+  avatar?: string
+  name: string
+}

@@ -1,13 +1,29 @@
 <template>
-  <aside class="w-1/4 pr-4">
-    <div class="p-4 shadow-md rounded-lg bg-white dark:bg-gray-800">
-      <h2 class="text-lg font-semibold text-gray-700 dark:text-gray-100 mb-4">侧栏</h2>
-      <p class="text-gray-700 dark:text-gray-400">此处显示侧栏内容，如导航、分类等。</p>
-    </div>
-  </aside>
+  <section>
+    <Card>
+      <CardHeader>
+        <CardTitle>侧栏</CardTitle>
+        <CardDescription class="pt-4">导航与分类列表</CardDescription>
+      </CardHeader>
+
+      <Separator />
+      
+      <CardContent>
+        <p class="text-sm text-muted-foreground pt-4">
+          此处显示侧栏内容，如导航、分类等。
+        </p>
+      </CardContent>
+    </Card>
+  </section>
 </template>
 
-<script setup lang="ts"></script>
-
-<style scoped>
-</style>
+<script setup lang="ts">
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent
+} from '@/components/ui/card'
+import { Separator } from '@/components/ui/separator'
+</script>

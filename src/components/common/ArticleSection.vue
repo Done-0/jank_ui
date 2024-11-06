@@ -1,49 +1,76 @@
 <template>
-  <section class="flex-1 px-6 py-8">
-    <Card class="shadow-md rounded-lg p-6 border border-gray">
-      <CardContent v-if="articles.length === 0" class="rounded-lg border border-gray p-6">
-        加载中...
+  <section>
+    <Card class="overflow-hidden">
+      <CardContent v-if="articles.length === 0" class="flex items-center justify-center min-h-[200px]">
+        <span class="text-muted-foreground">加载中...</span>
       </CardContent>
-      <CardContent v-else>
-        <div
+      
+      <CardContent v-else class="p-6 space-y-6">
+        <article
           v-for="article in articles"
           :key="article.id"
-          class="flex h-48 mb-4 rounded-lg shadow-md hover:shadow-lg transition-all overflow-hidden border border-gray"
+          class="group flex h-48 rounded-lg border bg-card 
+                 hover:bg-accent/50 overflow-hidden hover:shadow-xl
+                 transition-all duration-500 ease-out"
         >
-          <!-- 左侧的文章图片 -->
-          <div class="w-1/3 h-full">
+          <div class="relative w-1/3 overflow-hidden">
             <img
               :src="article.image"
-              alt="文章图片"
-              class="w-full h-full object-cover rounded-l-lg"
+              :alt="article.title"
+              class="h-full w-full object-cover 
+                     transition-transform duration-500 ease-out
+                     group-hover:scale-105"
             />
+            <div class="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent 
+                        opacity-0 group-hover:opacity-80 
+                        transition-opacity duration-500" />
           </div>
-          <!-- 中间的竖直分割线 -->
-          <div class="border-r border-white"></div>
-          <!-- 右侧的文章信息 -->
-          <div class="w-2/3 p-4 flex flex-col justify-center">
-            <h3 class="text-xl font-semibold">
+
+          <div class="border-r h-full" />
+
+          <div class="w-2/3 p-4 md:p-6 flex flex-col justify-center space-y-3
+                      transform group-hover:translate-x-2 
+                      transition-transform duration-500 ease-out">
+            <h3 class="text-lg md:text-xl font-semibold 
+                       transition-colors duration-500 ease-out
+                       group-hover:text-primary">
               {{ article.title }}
             </h3>
-            <p class="mt-2">
+            <p class="text-sm text-muted-foreground line-clamp-2 
+                      transition-colors duration-500 ease-out
+                      group-hover:text-current">
               {{ article.summary }}
             </p>
           </div>
-        </div>
+        </article>
       </CardContent>
-      <CardFooter class="rounded-lg border-t border-gray">
-        <Pagination v-slot="{ page }" :total="100" :sibling-count="1" show-edges :default-page="2">
-          <PaginationList v-slot="{ items }" class="flex items-center justify-center gap-2">
+
+      <CardFooter class="flex justify-center px-6">
+        <Pagination 
+          v-slot="{ page }" 
+          :total="100" 
+          :sibling-count="1" 
+          show-edges 
+          :default-page="2"
+        >
+          <PaginationList v-slot="{ items }" class="flex items-center gap-2">
             <PaginationFirst />
             <PaginationPrev />
 
-            <template v-for="(item, index) in items">
-              <PaginationListItem v-if="item.type === 'page'" :key="index" :value="item.value" as-child>
-                <Button class="w-10 h-10 p-0" :variant="item.value === page ? 'default' : 'outline'">
+            <template v-for="(item, index) in items" :key="index">
+              <PaginationListItem 
+                v-if="item.type === 'page'" 
+                :value="item.value" 
+                as-child
+              >
+                <Button 
+                  :variant="item.value === page ? 'default' : 'outline'"
+                  class="h-9 w-9 p-0"
+                >
                   {{ item.value }}
                 </Button>
               </PaginationListItem>
-              <PaginationEllipsis v-else :key="item.type" :index="index" />
+              <PaginationEllipsis v-else />
             </template>
 
             <PaginationNext />
@@ -58,7 +85,8 @@
 <script setup lang="ts">
 import { 
   Card, 
-  CardContent 
+  CardContent,
+  CardFooter,
 } from '@/components/ui/card'
 
 import {
@@ -76,10 +104,33 @@ import {
   PaginationPrev,
 } from '@/components/ui/pagination'
 
+interface Article {
+  id: number
+  image: string
+  title: string
+  summary: string
+}
+
 defineProps<{
-  articles: { id: number, image: string, title: string, summary: string }[]
+  articles: Article[]
 }>()
 </script>
 
 <style scoped>
+.group {
+  will-change: transform;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .group,
+  .group *,
+  .group::before,
+  .group::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
 </style>
