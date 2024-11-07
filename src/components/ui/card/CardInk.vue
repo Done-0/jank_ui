@@ -54,81 +54,80 @@
         </div>
       </CardFooter>
     </Card> 
-  </template>
-  
-  <script setup lang="ts">
-  import { ref } from 'vue'
-  import { Card, CardContent, CardFooter } from '@/components/ui/card'
-  import { useCloudAnimation } from '@/assets/styles/CloudAnimation.ts'
-  
-  interface SocialLink {
-    name: string
-    icon: string
-    url: string
+</template>
+
+<script setup lang="ts">
+import { ref } from 'vue'
+import { Card, CardContent, CardFooter } from '@/components/ui/card'
+import { useCloudAnimation } from '@/composables/CloudAnimation'
+
+interface SocialLink {
+  name: string
+  icon: string
+  url: string
+}
+
+interface Props {
+  avatarUrl: string
+  name: string
+  title: string
+  backDetails: string[]
+  socials: SocialLink[]
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  avatarUrl: '/default-avatar.jpg',
+  name: 'Your Name',
+  title: 'Your Title',
+  backDetails: () => ['🎓 Detail 1', '💼 Detail 2', '🌟 Detail 3'],
+  socials: () => []
+})
+
+const isHovered = ref(false)
+const cloudContainer = ref<HTMLDivElement | null>(null)
+
+useCloudAnimation(cloudContainer)
+</script>
+
+<style scoped>
+.cloud-background {
+  filter: blur(2px);
+  opacity: 0.8;
+}
+
+@property --rotate {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
   }
-  
-  interface Props {
-    avatarUrl: string
-    name: string
-    title: string
-    backDetails: string[]
-    socials: SocialLink[]
+  to {
+    opacity: 1;
+    transform: scale(1);
   }
-  
-  const props = withDefaults(defineProps<Props>(), {
-    avatarUrl: '/default-avatar.jpg',
-    name: 'Your Name',
-    title: 'Your Title',
-    backDetails: () => ['🎓 Detail 1', '💼 Detail 2', '🌟 Detail 3'],
-    socials: () => []
-  })
-  
-  const isHovered = ref(false)
-  const cloudContainer = ref<HTMLDivElement | null>(null)
-  
-  useCloudAnimation(cloudContainer)
-  </script>
-  
-  <style scoped>
-  .cloud-background {
-    filter: blur(2px);
-    opacity: 0.8;
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+    transform: scale(1);
   }
-  
-  @property --rotate {
-    syntax: '<angle>';
-    initial-value: 0deg;
-    inherits: false;
+  to {
+    opacity: 0;
+    transform: scale(0.95);
   }
-  
-  @keyframes fadeIn {
-    from {
-      opacity: 0;
-      transform: scale(0.95);
-    }
-    to {
-      opacity: 1;
-      transform: scale(1);
-    }
-  }
-  
-  @keyframes fadeOut {
-    from {
-      opacity: 1;
-      transform: scale(1);
-    }
-    to {
-      opacity: 0;
-      transform: scale(0.95);
-    }
-  }
-  
-  .animate-fadeIn {
-    animation: fadeIn 0.7s ease-out forwards;
-  }
-  
-  .animate-fadeOut {
-    animation: fadeOut 0.7s ease-out forwards;
-  }
-  </style>
-  
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.7s ease-out forwards;
+}
+
+.animate-fadeOut {
+  animation: fadeOut 0.7s ease-out forwards;
+}
+</style>

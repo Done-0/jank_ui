@@ -1,40 +1,3 @@
-<script setup lang="ts">
-import { Button } from '@/components/ui/button'
-import { 
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger 
-} from '@/components/ui/dropdown-menu'
-import DarkModeButton from '@/components/ui/button/DarkModeButton.vue'
-import { UserIcon, LogOutIcon } from 'lucide-vue-next'
-import AuthDialog from '@/components/business/auth/AuthDialog.vue'
-import { useAuthStore } from '@/store/modules/auth'
-import { computed } from 'vue'
-
-const navLinks = [
-  { name: '首页', path: '/' },
-  { name: '社区', path: '/about' },
-  { name: '联系我们', path: '/contact' }
-]
-
-const authStore = useAuthStore()
-
-const isAuthenticated = computed(() => authStore.isAuthenticated)
-
-const handleLogout = () => {
-  authStore.logout()
-}
-
-const userAvatar = computed(() => {
-  return authStore.userProfile?.avatar || '/default-avatar.png'
-})
-
-const userName = computed(() => {
-  return authStore.userProfile?.name || authStore.userInfo?.nickname || '用户'
-})
-</script>
-
 <template>
   <header class="w-full border-b">
     <div class="container flex h-16 items-center">
@@ -93,3 +56,42 @@ const userName = computed(() => {
     </div>
   </header>
 </template>
+
+<script setup lang="ts">
+import { Button } from '@/components/ui/button'
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger 
+} from '@/components/ui/dropdown-menu'
+import { DarkModeButton } from '@/components/ui/button'
+import { UserIcon, LogOutIcon } from 'lucide-vue-next'
+import { AuthDialog } from '@/components/business/auth'
+import { useAuthStore } from '@/store/modules/auth'
+import { computed } from 'vue'
+
+const navLinks = [
+  { name: '首页', path: '/' },
+  { name: '社区', path: '/about' },
+  { name: '联系我们', path: '/contact' }
+]
+
+const authStore = useAuthStore()
+
+const isAuthenticated = computed(() => authStore.isAuthenticated)
+
+const handleLogout = () => {
+  authStore.logout()
+}
+
+const userAvatar = computed(() => {
+  return authStore.userProfile?.avatar || '/default-avatar.png'
+})
+
+const userName = computed(() => {
+  return authStore.userProfile?.name || authStore.userInfo?.nickname || '用户'
+})
+</script>
+
+
