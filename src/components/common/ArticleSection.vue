@@ -9,9 +9,10 @@
         <article
           v-for="article in articles"
           :key="article.id"
-          class="group flex h-48 rounded-lg border bg-card 
-                 hover:bg-accent/50 overflow-hidden hover:shadow-xl
-                 transition-all duration-500 ease-out"
+          class="card-hover group flex h-48 rounded-lg border bg-card overflow-hidden
+                 hover:bg-accent/50 hover:shadow-xl"
+          style="--card-hover-translate-x: 0; --card-hover-translate-y: 0; --card-hover-scale: 1; 
+                 --card-hover-duration: 500ms"
         >
           <div class="relative w-1/3 overflow-hidden">
             <img
@@ -104,12 +105,9 @@ import {
   PaginationPrev,
 } from '@/components/ui/pagination'
 
-interface Article {
-  id: number
-  image: string
-  title: string
-  summary: string
-}
+import {
+  Article
+} from '@/types/article'
 
 defineProps<{
   articles: Article[]

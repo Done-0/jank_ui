@@ -1,71 +1,131 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
- 
+
 @layer base {
   :root {
     --background: 0 0% 100%;
     --foreground: 240 10% 3.9%;
- 
     --card: 0 0% 100%;
     --card-foreground: 240 10% 3.9%;
- 
     --popover: 0 0% 100%;
     --popover-foreground: 240 10% 3.9%;
- 
     --primary: 240 5.9% 10%;
     --primary-foreground: 0 0% 98%;
- 
     --secondary: 240 4.8% 95.9%;
     --secondary-foreground: 240 5.9% 10%;
- 
     --muted: 240 4.8% 95.9%;
     --muted-foreground: 240 3.8% 46.1%;
- 
     --accent: 240 4.8% 95.9%;
     --accent-foreground: 240 5.9% 10%;
- 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
- 
     --border: 240 5.9% 90%;
     --input: 240 5.9% 90%;
     --ring: 240 5.9% 10%;
- 
     --radius: 0.5rem;
+
+    /* Card 悬浮效果默认配置 */
+    --card-hover-translate-x: 8px;    /* X轴移动距离 */
+    --card-hover-translate-y: -6px;   /* Y轴移动距离 */
+    --card-hover-duration: 500ms;     /* 过渡动画持续时间 */
+    --card-hover-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);  /* 悬浮阴影 */
+    --card-hover-scale: 1.02;         /* 缩放比例 */
   }
- 
+
   .dark {
     --background: 240 10% 3.9%;
     --foreground: 0 0% 98%;
- 
     --card: 240 10% 3.9%;
     --card-foreground: 0 0% 98%;
- 
     --popover: 240 10% 3.9%;
     --popover-foreground: 0 0% 98%;
- 
     --primary: 0 0% 98%;
     --primary-foreground: 240 5.9% 10%;
- 
     --secondary: 240 3.7% 15.9%;
     --secondary-foreground: 0 0% 98%;
- 
     --muted: 240 3.7% 15.9%;
     --muted-foreground: 240 5% 64.9%;
- 
     --accent: 240 3.7% 15.9%;
     --accent-foreground: 0 0% 98%;
- 
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
- 
     --border: 240 3.7% 15.9%;
     --input: 240 3.7% 15.9%;
     --ring: 240 4.9% 83.9%;
   }
+
+  /* Card 基础卡片悬浮效果 */
+  .card-hover {
+    position: relative;
+    will-change: transform;
+    transform: translateZ(0);
+    backface-visibility: hidden;
+    transition: 
+      transform var(--card-hover-duration) ease-out,
+      box-shadow var(--card-hover-duration) ease-out;
+  }
+
+  .card-hover:hover {
+    transform: 
+      translateX(var(--card-hover-translate-x)) 
+      translateY(var(--card-hover-translate-y)) 
+      translateZ(0)
+      scale(var(--card-hover-scale));
+    box-shadow: var(--card-hover-shadow);
+  }
+
+  /* 向上悬浮变体 */
+  .card-hover-up {
+    --card-hover-translate-x: 0;
+    --card-hover-translate-y: -10px;
+  }
+
+  /* 向右悬浮变体 */
+  .card-hover-right {
+    --card-hover-translate-x: 10px;
+    --card-hover-translate-y: 0;
+  }
+
+  /* 向下悬浮变体 */
+  .card-hover-down {
+    --card-hover-translate-x: 0;
+    --card-hover-translate-y: 10px;
+  }
+
+  /* 向左悬浮变体 */
+  .card-hover-left {
+    --card-hover-translate-x: -10px;
+    --card-hover-translate-y: 0;
+  }
+
+  /* 对角线悬浮变体 */
+  .card-hover-diagonal {
+    --card-hover-translate-x: 6px;
+    --card-hover-translate-y: -6px;
+  }
+
+  /* 无缩放变体 */
+  .card-hover-no-scale {
+    --card-hover-scale: 1;
+  }
+
+  /* 大缩放变体 */
+  .card-hover-scale-lg {
+    --card-hover-scale: 1.05;
+  }
+
+  /* 减少动画 */
+  @media (prefers-reduced-motion: reduce) {
+    .card-hover,
+    .card-hover * {
+      transition-duration: 0.01ms !important;
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+    }
+  }
 }
- 
+
 @layer base {
   * {
     @apply border-border;
