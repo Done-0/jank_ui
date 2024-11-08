@@ -1,6 +1,6 @@
 import { ref } from 'vue'
 
-export default function useAuth() {
+export default function UseAuth() {
   const isLoggedIn = ref(false)
   const userProfileImage = ref('')
 

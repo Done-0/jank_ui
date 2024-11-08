@@ -1,6 +1,6 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 
-export default function useFooterVisibility() {
+export default function UseFooterVisibility() {
   const showFooter = ref(true)
   let lastScrollY = 0
 

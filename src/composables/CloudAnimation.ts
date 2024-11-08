@@ -27,7 +27,6 @@ interface CloudAnimation {
   animationId: number;
 }
 
-// Configuration constants
 const CLOUD_CONFIG = {
   colors: [
     'rgba(45, 45, 45, 0.12)', 
@@ -55,6 +54,20 @@ const CLOUD_CONFIG = {
   scaleSpeed: 0.001,
   updateInterval: 1000 / 60,
 } as const;
+
+const performanceUtils = {
+  dropPool: new Set<CloudDrop>(),
+  
+  getCloudDrop(canvas: HTMLCanvasElement): CloudDrop {
+    const drop = this.dropPool.values().next().value || createCloudDrop(canvas);
+    this.dropPool.delete(drop);
+    return drop;
+  },
+
+  recycleCloudDrop(drop: CloudDrop) {
+    this.dropPool.add(drop);
+  }
+};
 
 function createCloudDrop(canvas: HTMLCanvasElement): CloudDrop {
   const isLight = Math.random() > 0.5;
@@ -84,6 +97,16 @@ function createCloudDrop(canvas: HTMLCanvasElement): CloudDrop {
 }
 
 function drawCloudDrop(ctx: CanvasRenderingContext2D, drop: CloudDrop): void {
+  const margin = drop.radius * 2;
+  if (
+    drop.x + margin < 0 ||
+    drop.x - margin > ctx.canvas.width ||
+    drop.y + margin < 0 ||
+    drop.y - margin > ctx.canvas.height
+  ) {
+    return;
+  }
+
   ctx.save();
   ctx.translate(drop.x, drop.y);
   ctx.rotate(drop.rotation);
@@ -142,11 +165,8 @@ function updateCloudDrop(drop: CloudDrop, canvas: HTMLCanvasElement): void {
   const lifeProgress = drop.life / drop.maxLife;
 
   const fadeInOut = (x: number): number => {
-    if (x < 0.2) {
-      return (Math.sin((x / 0.2 - 0.5) * Math.PI) + 1) / 2;
-    } else if (x > 0.8) {
-      return (Math.sin(((1 - x) / 0.2 - 0.5) * Math.PI) + 1) / 2;
-    }
+    if (x < 0.2) return (Math.sin((x / 0.2 - 0.5) * Math.PI) + 1) / 2;
+    if (x > 0.8) return (Math.sin(((1 - x) / 0.2 - 0.5) * Math.PI) + 1) / 2;
     return 1;
   };
 
@@ -171,48 +191,57 @@ function updateCloudDrop(drop: CloudDrop, canvas: HTMLCanvasElement): void {
   drop.rotation += drop.rotationSpeed * moveSpeed * deltaTime;
 
   const margin = drop.radius * 2;
-  if (drop.x < -margin) {
-    drop.x = canvas.width + margin;
+  if (drop.x < -margin || drop.x > canvas.width + margin ||
+      drop.y < -margin || drop.y > canvas.height + margin) {
     drop.alpha *= 0.5;
-  }
-  if (drop.x > canvas.width + margin) {
-    drop.x = -margin;
-    drop.alpha *= 0.5;
-  }
-  if (drop.y < -margin) {
-    drop.y = canvas.height + margin;
-    drop.alpha *= 0.5;
-  }
-  if (drop.y > canvas.height + margin) {
-    drop.y = -margin;
-    drop.alpha *= 0.5;
-  }
-
-  if (Math.random() < 0.0005) {
-    const newPoints = Array.from({ length: CLOUD_CONFIG.pointCount }, () => 0.95 + Math.random() * 0.1);
-    drop.points = drop.points.map((p, i) => p + (newPoints[i] - p) * 0.05);
+    if (drop.x < -margin) drop.x = canvas.width + margin;
+    if (drop.x > canvas.width + margin) drop.x = -margin;
+    if (drop.y < -margin) drop.y = canvas.height + margin;
+    if (drop.y > canvas.height + margin) drop.y = -margin;
   }
 }
 
 function animate(ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement, drops: CloudDrop[]): number {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-
- 
-  drops.forEach(drop => {
-    updateCloudDrop(drop, canvas);
-    drawCloudDrop(ctx, drop);
-  });
-
-  return requestAnimationFrame(() => animate(ctx, canvas, drops));
+  let lastFrameTime = performance.now();
+  
+  function loop(currentTime: number) {
+    const deltaTime = currentTime - lastFrameTime;
+    
+    if (deltaTime >= CLOUD_CONFIG.updateInterval) {
+      lastFrameTime = currentTime;
+      
+      // 使用普通 canvas 代替 OffscreenCanvas
+      const bufferCanvas = document.createElement('canvas');
+      bufferCanvas.width = canvas.width;
+      bufferCanvas.height = canvas.height;
+      const bufferCtx = bufferCanvas.getContext('2d')!;
+      
+      bufferCtx.clearRect(0, 0, canvas.width, canvas.height);
+      
+      for (let i = drops.length - 1; i >= 0; i--) {
+        const drop = drops[i];
+        updateCloudDrop(drop, canvas);
+        drawCloudDrop(bufferCtx, drop);
+      }
+      
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(bufferCanvas, 0, 0);
+    }
+    
+    return requestAnimationFrame(loop);
+  }
+  
+  return requestAnimationFrame(loop);
 }
 
-export function useCloudAnimation(containerRef: Ref<HTMLDivElement | null>) {
+export default function UseCloudAnimation(containerRef: Ref<HTMLDivElement | null>) {
   const animations = ref<CloudAnimation[]>([]);
   const cleanupFunctions = ref<(() => void)[]>([]);
 
   function createCloudAnimation(container: HTMLElement) {
     try {
       const canvas = document.createElement('canvas');
+      canvas.style.willChange = 'transform';
       const ctx = canvas.getContext('2d', { alpha: true });
 
       if (!ctx) {
@@ -220,7 +249,6 @@ export function useCloudAnimation(containerRef: Ref<HTMLDivElement | null>) {
         return;
       }
 
-      // 设置画布大小
       const setCanvasSize = () => {
         const rect = container.getBoundingClientRect();
         const dpr = window.devicePixelRatio || 1;
@@ -237,15 +265,24 @@ export function useCloudAnimation(containerRef: Ref<HTMLDivElement | null>) {
       const resizeObserver = new ResizeObserver(setCanvasSize);
       resizeObserver.observe(container);
 
-      const drops: CloudDrop[] = Array.from({ length: CLOUD_CONFIG.dropCount }, () => createCloudDrop(canvas));
+      const drops: CloudDrop[] = [];
+      const createDrops = (deadline: IdleDeadline) => {
+        while (drops.length < CLOUD_CONFIG.dropCount && deadline.timeRemaining() > 0) {
+          drops.push(performanceUtils.getCloudDrop(canvas));
+        }
+        if (drops.length < CLOUD_CONFIG.dropCount) {
+          requestIdleCallback(createDrops);
+        }
+      };
+      requestIdleCallback(createDrops);
 
       const animationId = animate(ctx, canvas, drops);
 
-      // 定时生成新的云朵
       const intervalId = setInterval(() => {
         const oldestDropIndex = drops.reduce((maxIndex, drop, index, arr) =>
           drop.life > arr[maxIndex].life ? index : maxIndex, 0);
-        drops[oldestDropIndex] = createCloudDrop(canvas);
+        performanceUtils.recycleCloudDrop(drops[oldestDropIndex]);
+        drops[oldestDropIndex] = performanceUtils.getCloudDrop(canvas);
       }, CLOUD_CONFIG.newDropInterval);
 
       const animation: CloudAnimation = { 
@@ -257,12 +294,12 @@ export function useCloudAnimation(containerRef: Ref<HTMLDivElement | null>) {
 
       animations.value.push(animation);
 
-      // 清理函数
       return () => {
         cancelAnimationFrame(animationId);
         clearInterval(intervalId);
         resizeObserver.disconnect();
         container.removeChild(canvas);
+        drops.forEach(drop => performanceUtils.recycleCloudDrop(drop));
       };
     } catch (error) {
       console.error('Error creating cloud animation:', error);
@@ -270,7 +307,6 @@ export function useCloudAnimation(containerRef: Ref<HTMLDivElement | null>) {
     }
   }
 
-  // 在组件挂载时初始化云朵动画
   onMounted(() => {
     if (containerRef.value) {
       const cleanup = createCloudAnimation(containerRef.value);
@@ -280,7 +316,6 @@ export function useCloudAnimation(containerRef: Ref<HTMLDivElement | null>) {
     }
   });
 
-  // 在组件卸载时清理动画
   onUnmounted(() => {
     cleanupFunctions.value.forEach(cleanup => cleanup());
     cleanupFunctions.value = [];

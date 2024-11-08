@@ -1,7 +1,7 @@
 import { ref } from 'vue'
 import type { Article } from '@/types/article'
 
-export default function useContent() {
+export default function UseContent() {
   const recommendedContent = ref('')
   const hotContent = ref('')
   const articles = ref<Article[]>([])

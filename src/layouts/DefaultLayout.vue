@@ -1,7 +1,7 @@
 <template>
   <div class="min-h-screen flex flex-col relative">
     <!-- 顶部导航栏 -->
-    <Navbar 
+    <NavBar 
       :is-logged-in="isLoggedIn" 
       :user-profile-image="userProfileImage"
       class="w-full border-b"
@@ -37,16 +37,10 @@
 
 <script setup lang="ts">
 import { onMounted } from 'vue'
-import useAuth from '@/composables/useAuth'
-import useContent from '@/composables/useContent'
-import useFooterVisibility from '@/composables/useFooterVisibility'
-import Navbar from '@/components/common/NavBar.vue'
-import Announcement from '@/components/common/Announcement.vue'
-import Aside from '@/components/common/Aside.vue'
-import ArticleSection from '@/components/common/ArticleSection.vue'
-import Footer from '@/components/common/Footer.vue'
+import { UseAuth, UseContent, UseFooterVisibility } from '@/composables'
+import { NavBar, Announcement, Aside, ArticleSection, Footer } from '@/components/common'
 
-const { isLoggedIn, userProfileImage, login, logout } = useAuth()
+const { isLoggedIn, userProfileImage, login, logout } = UseAuth()
 const { 
   recommendedContent, 
   hotContent, 
@@ -54,8 +48,8 @@ const {
   fetchRecommendedContent, 
   fetchHotContent,
   fetchArticles 
-} = useContent()
-const { showFooter } = useFooterVisibility()
+} = UseContent()
+const { showFooter } = UseFooterVisibility()
 
 onMounted(() => {
   fetchRecommendedContent()
