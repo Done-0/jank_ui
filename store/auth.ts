@@ -1,4 +1,3 @@
-// stores/auth.ts
 import { defineStore } from 'pinia'
 import type { 
   LoginRequest, 
@@ -32,7 +31,7 @@ export const useAuthStore = defineStore('auth', () => {
   // API 调用和状态管理
   const login = async (payload: LoginRequest) => {
     try {
-      const { data } = await useFetch<ApiResponse<LoginResponse>>('/api/auth/login', {
+      const { data } = await useFetch<ApiResponse<LoginResponse>>('/account/loginAccount', {
         method: 'POST',
         body: payload,
       })
@@ -67,14 +66,14 @@ export const useAuthStore = defineStore('auth', () => {
 
       return response.data
     } catch (error) {
-      console.error('Login error:', error)
+      console.error('登录失败:', error)
       throw error
     }
   }
 
   const register = async (payload: RegisterRequest) => {
     try {
-      const { data } = await useFetch<ApiResponse<LoginResponse>>('/api/auth/register', {
+      const { data } = await useFetch<ApiResponse<LoginResponse>>('/account/registerAccount', {
         method: 'POST',
         body: payload,
       })
@@ -108,7 +107,7 @@ export const useAuthStore = defineStore('auth', () => {
 
       return response.data
     } catch (error) {
-      console.error('Register error:', error)
+      console.error('注册失败:', error)
       throw error
     }
   }
@@ -161,7 +160,7 @@ export const useLocalStorage = () => {
         profile: JSON.parse(profile)
       }
     } catch (e) {
-      console.error('Failed to parse stored auth data:', e)
+      console.error('解析本地存储数据失败:', e)
       return null
     }
   }

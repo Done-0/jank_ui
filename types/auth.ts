@@ -24,9 +24,9 @@ export interface UserInfo {
 }
 
 export interface ApiResponse<T> {
-  data: T;
-  message?: string;
-  code?: number;
+  code: number
+  msg: string
+  data: T
 }
 
 export interface RegisterRequest {
