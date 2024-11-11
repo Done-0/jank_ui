@@ -1,5 +1,3 @@
-import { ref, onMounted, onUnmounted, type Ref } from 'vue';
-
 interface CloudDrop {
   x: number;
   y: number;

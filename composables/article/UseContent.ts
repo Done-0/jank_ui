@@ -1,11 +1,7 @@
-import type { Article, ArticleDisplay, ContentItem } from '~/types/article'
-import { useRuntimeConfig } from '#app'
+import type { Article, ArticleDisplay, ContentItem } from '~/types/article/article'
 
 export default function useContent() {
-  // 获取应用的运行时配置
   const config = useRuntimeConfig()
-  
-  // API URL 配置，获取所有文章的接口地址
   const apiUrl = `${config.public.apiBase}/post/getAllPosts`
 
   // 定义响应式状态：存储文章数据、推荐内容、热门内容、加载状态、错误信息等
@@ -28,7 +24,6 @@ export default function useContent() {
   // 计算总页数
   const totalPages = computed(() => {
     const pages = Math.ceil(articles.value.length / articlesPerPage)
-    console.log('总页数:', pages) // 调试输出总页数
     return pages
   })
 
@@ -47,11 +42,11 @@ export default function useContent() {
    * @param prefix 用于生成标题的前缀
    * @returns 生成的内容项数组
    */
-  const generateContentItems = (articles: ArticleDisplay[], prefix: string): ContentItem[] => {
+  const generateContentItems = (articles: ArticleDisplay[],): ContentItem[] => {
     return articles.map(article => ({
       id: article.id,
-      title: `${prefix}: ${article.title}`,  // 添加前缀以标识是推荐或热门内容
-      link: `/articles/${article.id}`  // 生成链接
+      title: `${article.title}`,
+      link: `/articles/${article.id}`
     }))
   }
 
@@ -66,23 +61,20 @@ export default function useContent() {
         throw new Error('Invalid data format received')
       }
 
-      // 打印获取到的数据以便调试
-      console.log('获取到的文章数据:', data)
-
       // 将每篇文章数据转化为显示用的格式，并提取摘要
       articles.value = data.map((post: Article) => ({
         ...post,
         summary: extractSummary(post.contentHtml)
       }))
 
-      // 获取浏览量最高的前4篇文章作为推荐和热门内容
+      // 获取浏览量最高的前2篇文章作为推荐和热门内容
       const topArticles = articles.value
         .sort((a, b) => (b.viewCount || 0) - (a.viewCount || 0))
-        .slice(0, 4)
+        .slice(0, 2)
 
       // 生成推荐和热门内容
-      recommendedContent.value = generateContentItems(topArticles, '推荐')
-      hotContent.value = generateContentItems(topArticles, '热门')
+      recommendedContent.value = generateContentItems(topArticles)
+      hotContent.value = generateContentItems(topArticles)
 
       // 清除错误信息
       error.value = null

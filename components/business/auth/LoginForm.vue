@@ -23,8 +23,7 @@
           <FormItem>
             <FormLabel>密码</FormLabel>
             <FormControl>
-              <Input
-              v-model="field.value" type="password" placeholder="请输入密码" autocomplete="current-password"
+              <Input v-model="field.value" type="password" placeholder="请输入密码" autocomplete="current-password"
                 @blur="field.onBlur" />
             </FormControl>
             <FormMessage>{{ errors[0] }}</FormMessage>
@@ -75,7 +74,7 @@ import {
 import { toTypedSchema } from '@vee-validate/zod'
 import { useForm } from 'vee-validate'
 import * as z from 'zod'
-import { useAuthStore } from '~/store/auth'
+import { useAuthStore } from '~/store/auth/auth'
 
 const emit = defineEmits<{
   (e: 'success' | 'switch-to-register'): void

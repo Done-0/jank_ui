@@ -6,7 +6,7 @@
       </router-link>
 
       <nav class="flex items-center space-x-8">
-        <router-link
+        <router-link 
           v-for="link in navLinks" :key="link.path" :to="link.path"
           class="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors">
           {{ link.name }}
@@ -19,7 +19,6 @@
             <DarkModeButton class="h-[1.2rem] w-[1.2rem]" />
           </Button>
 
-          <!-- 登录相关组件包装在 ClientOnly 中 -->
           <template v-if="!isAuthenticated">
             <AuthDialog>
               <Button variant="ghost" size="icon">
@@ -62,8 +61,7 @@ import {
 } from '~/components/ui/dropdown-menu'
 import { UserIcon, LogOutIcon } from 'lucide-vue-next'
 import AuthDialog from '~/components/business/auth/AuthDialog.vue'
-import { useAuthStore } from '~/store/auth'
-import { computed, onMounted } from 'vue'
+import { useAuthStore } from '~/store/auth/auth'
 
 const navLinks = [
   { name: '首页', path: '/' },
@@ -73,7 +71,6 @@ const navLinks = [
 
 const authStore = useAuthStore()
 
-// 添加默认值和状态初始化
 const isAuthenticated = computed(() => authStore.isAuthenticated ?? false)
 
 const userAvatar = computed(() => {
@@ -87,10 +84,4 @@ const userName = computed(() => {
 const handleLogout = () => {
   authStore.logout()
 }
-
-// 可选：添加初始化逻辑
-onMounted(() => {
-  // 如果需要，在这里初始化用户状态
-  // authStore.initializeAuth()
-})
 </script>

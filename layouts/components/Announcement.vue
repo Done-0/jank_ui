@@ -2,7 +2,9 @@
   <section class="w-full flex justify-center pt-6 pb-0">
     <div class="w-full max-w-7xl flex gap-4">
       <!-- 左侧公告板：展示热门内容 -->
-      <Card class="w-1/2 min-h-[250px] rounded-lg border" :style="props.leftBgImage ? { backgroundImage: `url(${props.leftBgImage})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}">
+      <Card 
+        class="w-1/2 min-h-[250px] rounded-lg border"
+        :style="props.leftBgImage ? { backgroundImage: `url(${props.leftBgImage})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}">
         <CardHeader class="py-4">
           <CardTitle class="text-2xl font-semibold">热门内容</CardTitle>
         </CardHeader>
@@ -19,7 +21,9 @@
       </Card>
 
       <!-- 右侧公告板：展示推荐内容 -->
-      <Card class="w-1/2 min-h-[250px] rounded-lg border" :style="props.rightBgImage ? { backgroundImage: `url(${props.rightBgImage})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}">
+      <Card 
+        class="w-1/2 min-h-[250px] rounded-lg border"
+        :style="props.rightBgImage ? { backgroundImage: `url(${props.rightBgImage})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}">
         <CardHeader class="py-4">
           <CardTitle class="text-2xl font-semibold">推荐内容</CardTitle>
         </CardHeader>
@@ -39,7 +43,7 @@
 </template>
 
 <script setup lang="ts">
-import type { ContentItem } from '~/types/article'
+import type { ContentItem } from '~/types/article/article'
 
 // 定义传递的 props
 const props = defineProps<{

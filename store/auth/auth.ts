@@ -1,4 +1,3 @@
-import { defineStore } from 'pinia'
 import type { 
   LoginRequest, 
   LoginResponse, 
@@ -6,7 +5,7 @@ import type {
   UserInfo,
   UserProfile,
   ApiResponse 
-} from '~/types/auth'
+} from '~/types/auth/auth'
 
 export const useAuthStore = defineStore('auth', () => {
   // 状态定义

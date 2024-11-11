@@ -29,7 +29,7 @@
           </div>
 
           <!-- 分隔线 -->
-          <div class="border-r h-full" />
+          <div class="border-r h-full border-card-border" />
 
           <!-- 文章标题和摘要 -->
           <div
@@ -99,7 +99,7 @@ import {
   PaginationPrev,
 } from '@/components/ui/pagination'
 
-import UseContent from '~/composables/UseContent'
+import UseContent from '~/composables/article/UseContent'
 
 const { paginatedArticles, currentPage, totalPages, loading } = UseContent()
 </script>
