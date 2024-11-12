@@ -1,13 +1,11 @@
-export interface LoginRequest {
-  email: string;
-  password: string;
-  remember: boolean;
-}
+import type { BaseResponse } from "~/types/base/base"
 
-export interface LoginResponse {
-  user_id: string;
-  access_token: string;
-  refresh_token: UserInfo;
+// 请求接口
+export interface LoginRequest {
+  email: string
+  password: string
+  verificationCode: string
+  remember: boolean
 }
 
 export interface RegisterRequest {
@@ -16,24 +14,19 @@ export interface RegisterRequest {
   confirmPassword: string
   agreeToTerms: boolean
 }
+
+// 响应接口
+export interface LoginResponse {
+  userId: string          
+  accessToken: string     
+  userInfo: UserInfo      
+}
+
 export interface UserInfo {
-  email: string;
-  nickname: string;
-  phone: string;
-  role_code: string;
-}
-
-export interface ApiResponse<T> {
-  code: number
-  msg: string
-  data: T
-}
-
-export interface RegisterRequest {
-  email: string;
-  password: string;
-  confirmPassword: string;
-  agreeToTerms: boolean;
+  email: string
+  nickname: string
+  phone: string
+  roleCode: string       
 }
 
 export interface UserProfile {
@@ -42,3 +35,13 @@ export interface UserProfile {
   avatar?: string
   name: string
 }
+
+export interface CaptchaResponse {
+  code: number
+  data: {
+    imgBase64: string
+  }
+  msg: string
+}
+
+export type AuthResponse = BaseResponse<LoginResponse>

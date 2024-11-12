@@ -1,3 +1,5 @@
+import type { BaseResponse } from "~/types/base/base"
+
 export interface Article {
   id: number
   title: string
@@ -6,6 +8,7 @@ export interface Article {
   visibility: string
   createdAt?: string
   viewCount?: number
+  contentMarkdown?: string
 }
 
 export interface ArticleDisplay extends Article {
@@ -19,7 +22,10 @@ export interface ContentItem {
 }
 
 export interface ApiResponse<T> {
-  code: number
-  msg: string
   data: T
+  requestId: string
+  timestamp: number
 }
+
+
+export type ArticleListResponse = BaseResponse<Article[]>

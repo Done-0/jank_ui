@@ -1,56 +1,82 @@
-import type { LoginRequest, LoginResponse, UserInfo, ApiResponse } from '~/types/auth/auth'
+import { ApiStatusCode } from '~/types/base/base'
+import type { 
+  LoginRequest, 
+  LoginResponse, 
+  UserInfo, 
+  AuthResponse 
+} from '~/types/auth/auth'
 
-export default function useLogin() {
+export default function useAuth() {
   const config = useRuntimeConfig()
   const apiUrl = `${config.public.apiBase}/account/loginAccount`
   
-  const loading = ref(false)
-  const error = ref<string | null>(null)
-  const user = ref<UserInfo | null>(null)
-
+  const loading = useState('auth-loading', () => false)
+  const error = useState<string | null>('auth-error', () => null)
+  const user = useState<UserInfo | null>('auth-user', () => null)
+  
   const isLoggedIn = computed(() => !!user.value)
+
+  const initializeAuth = () => {
+    if (!import.meta.client) return
+    
+    try {
+      const storedUser = localStorage.getItem('userInfo')
+      if (storedUser) {
+        user.value = JSON.parse(storedUser)
+      }
+    } catch (err) {
+      console.error('Failed to restore auth state:', err)
+    }
+  }
+
+  const saveAuthData = (authData: LoginResponse) => {
+    if (!import.meta.client) return
+    
+    localStorage.setItem('accessToken', authData.accessToken)
+    localStorage.setItem('userInfo', JSON.stringify(authData.userInfo))
+    user.value = authData.userInfo
+  }
+
+  const clearAuthData = () => {
+    if (!import.meta.client) return
+    
+    localStorage.removeItem('accessToken')
+    localStorage.removeItem('userInfo')
+    user.value = null
+  }
 
   const login = async (request: LoginRequest) => {
     loading.value = true
     error.value = null
-
+  
     try {
-      const response = await fetch(apiUrl, {
+      const response = await $fetch<AuthResponse>(apiUrl, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(request)
+        body: request
       })
-
-      if (!response.ok) {
-        throw new Error('登录失败，请检查邮箱和密码！')
+  
+      if (response.code === ApiStatusCode.SUCCESS) {
+        saveAuthData(response.data)
+      } else {
+        throw new Error(response.msg || '登录失败')
       }
-
-      const data: ApiResponse<LoginResponse> = await response.json()
-
-      if (data.code !== 0) {
-        throw new Error(data.msg);
-      }
-
-      user.value = data.data.refresh_token;
-
-      // 存储 token 或其他认证信息
-      localStorage.setItem('access_token', data.data.access_token);
-      localStorage.setItem('refresh_token', JSON.stringify(data.data.refresh_token));
-
     } catch (err) {
-      error.value = err instanceof Error ? err.message : '发生错误，请稍后再试'
+      error.value = err instanceof Error 
+        ? err.message 
+        : '登录失败，请稍后重试'
+      throw error.value
     } finally {
       loading.value = false
     }
   }
 
   const logout = () => {
-    user.value = null
-    localStorage.removeItem('access_token')
-    localStorage.removeItem('refresh_token')
+    clearAuthData()
   }
+
+  onMounted(() => {
+    initializeAuth()
+  })
 
   return {
     loading,

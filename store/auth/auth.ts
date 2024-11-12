@@ -1,24 +1,49 @@
 import type { 
   LoginRequest, 
-  LoginResponse, 
   RegisterRequest,
   UserInfo,
   UserProfile,
-  ApiResponse 
+  AuthResponse,
+  CaptchaResponse
 } from '~/types/auth/auth'
+import { useLocalStorage } from '~/composables/auth/useLocalStorage'
 
 export const useAuthStore = defineStore('auth', () => {
-  // 状态定义
+  const config = useRuntimeConfig()
+  const apiUrl = config.public.apiBase
   const state = useState('auth', () => ({
     userProfile: null as UserProfile | null,
     userInfo: null as UserInfo | null,
     accessToken: null as string | null,
   }))
+  const captchaUrl = ref('')
+  const captchaLoading = ref(false)
 
-  // 计算属性
+  const getCaptcha = async () => {
+    captchaLoading.value = true
+    try {
+      const { data } = await useFetch<CaptchaResponse>(`${apiUrl}/account/genImgVerificationCode`, {
+        method: 'GET',
+        query: {
+          email: '927171598@qq.com'
+        }
+      })
+
+      if (!data.value) {
+        throw new Error('获取验证码失败')
+      }
+
+      captchaUrl.value = data.value.data.imgBase64
+    } catch (error) {
+      console.error('获取验证码失败:', error)
+      throw error
+    } finally {
+      captchaLoading.value = false
+    }
+  }
+
   const isAuthenticated = computed(() => !!state.value.accessToken)
 
-  // 状态更新函数
   const updateState = (token: string | null, info: UserInfo | null, profile: UserProfile | null) => {
     state.value = {
       accessToken: token,
@@ -27,42 +52,40 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  // API 调用和状态管理
   const login = async (payload: LoginRequest) => {
     try {
-      const { data } = await useFetch<ApiResponse<LoginResponse>>('/account/loginAccount', {
+      const { data, error } = await useFetch<AuthResponse>(`${apiUrl}/account/loginAccount`, {
         method: 'POST',
         body: payload,
+        headers: {
+          'Content-Type': 'application/json'
+        }
       })
-
+  
+      if (error.value) {
+        throw new Error(error.value.message)
+      }
+  
       if (!data.value) {
         throw new Error('登录失败')
       }
-
+  
       const response = data.value
+      const { userInfo, accessToken, userId } = response.data
+  
       const profile: UserProfile = {
-        id: response.data.user_id,
-        email: response.data.refresh_token.email,
-        name: response.data.refresh_token.nickname,
+        id: userId,
+        email: userInfo.email,
+        name: userInfo.nickname,
       }
-
-      // 更新状态
-      updateState(
-        response.data.access_token,
-        response.data.refresh_token,
-        profile
-      )
-
-      // 如果选择了"记住我"，则保存到 localStorage
+  
+      updateState(accessToken, userInfo, profile)
+  
       if (payload.remember && import.meta.client) {
         const storage = useLocalStorage()
-        storage.setAuth(
-          response.data.access_token,
-          response.data.refresh_token,
-          profile
-        )
+        storage.setAuth(accessToken, userInfo, profile)
       }
-
+  
       return response.data
     } catch (error) {
       console.error('登录失败:', error)
@@ -72,7 +95,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   const register = async (payload: RegisterRequest) => {
     try {
-      const { data } = await useFetch<ApiResponse<LoginResponse>>('/account/registerAccount', {
+      const { data } = await useFetch<AuthResponse>(`${apiUrl}/account/registerAccount`, {
         method: 'POST',
         body: payload,
       })
@@ -82,26 +105,19 @@ export const useAuthStore = defineStore('auth', () => {
       }
 
       const response = data.value
+      const { userInfo, accessToken, userId } = response.data
+
       const profile: UserProfile = {
-        id: response.data.user_id,
-        email: response.data.refresh_token.email,
-        name: response.data.refresh_token.nickname,
+        id: userId,
+        email: userInfo.email,
+        name: userInfo.nickname,
       }
 
-      // 更新状态
-      updateState(
-        response.data.access_token,
-        response.data.refresh_token,
-        profile
-      )
+      updateState(accessToken, userInfo, profile)
 
       if (import.meta.client) {
         const storage = useLocalStorage()
-        storage.setAuth(
-          response.data.access_token,
-          response.data.refresh_token,
-          profile
-        )
+        storage.setAuth(accessToken, userInfo, profile)
       }
 
       return response.data
@@ -134,45 +150,8 @@ export const useAuthStore = defineStore('auth', () => {
     login,
     register,
     logout,
+    captchaUrl: readonly(captchaUrl),
+    captchaLoading: readonly(captchaLoading),
+    getCaptcha,
   }
 })
-
-// composables/useLocalStorage.ts
-export const useLocalStorage = () => {
-  const setAuth = (token: string, info: UserInfo, profile: UserProfile) => {
-    localStorage.setItem('access_token', token)
-    localStorage.setItem('user_info', JSON.stringify(info))
-    localStorage.setItem('user_profile', JSON.stringify(profile))
-  }
-
-  const getAuth = () => {
-    const token = localStorage.getItem('access_token')
-    const info = localStorage.getItem('user_info')
-    const profile = localStorage.getItem('user_profile')
-
-    if (!token || !info || !profile) return null
-
-    try {
-      return {
-        token,
-        info: JSON.parse(info),
-        profile: JSON.parse(profile)
-      }
-    } catch (e) {
-      console.error('解析本地存储数据失败:', e)
-      return null
-    }
-  }
-
-  const clearAuth = () => {
-    localStorage.removeItem('access_token')
-    localStorage.removeItem('user_info')
-    localStorage.removeItem('user_profile')
-  }
-
-  return {
-    setAuth,
-    getAuth,
-    clearAuth
-  }
-}

@@ -12,7 +12,7 @@ export default defineNuxtConfig({
   // 运行时配置
   runtimeConfig: {
     public: {
-      apiBase: 'http://127.0.0.1:9010'
+      apiBase: process.env.NUXT_PUBLIC_API_BASE || 'http://127.0.0.1:9010'
     }
   },
 
