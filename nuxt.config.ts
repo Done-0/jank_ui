@@ -1,22 +1,9 @@
-import { fileURLToPath } from 'url';
+import { resolve } from 'pathe'
+import { loadEnv } from 'vite'
 
 export default defineNuxtConfig({
   compatibilityDate: '2024-04-03',
   devtools: { enabled: true },
-
-  // 引入自动导入配置
-  imports: {
-    autoImport: true
-  },
-
-  // 运行时配置
-  runtimeConfig: {
-    public: {
-      apiBase: process.env.NUXT_PUBLIC_API_BASE || 'http://127.0.0.1:9010'
-    }
-  },
-
-  // 应用程序相关配置
   app: {
     head: {
       charset: 'utf-8',
@@ -24,28 +11,22 @@ export default defineNuxtConfig({
     },
     pageTransition: { name: 'page', mode: 'out-in' },
   },
-
-  // TypeScript 配置
-  typescript: {
-    typeCheck: true
+  runtimeConfig: {
+    public: {
+      apiBase: loadEnv(process.argv[process.argv.length - 1], 'env/.env.dev').VITE_API_URL,
+    },
   },
-
-  // 模块配置
   modules: [
-    '@nuxt/eslint',
     '@nuxtjs/tailwindcss',
     'shadcn-nuxt',
     '@pinia/nuxt'
   ],
-
-  // Shadcn 模块配置
   shadcn: {
     prefix: '',
     componentDir: './components/ui'
   },
-
-  // 别名配置
-  alias: {
-    '~': fileURLToPath(new URL('.', import.meta.url))
-  },
+	alias: {
+		'@': resolve(__dirname, './'),
+    '~': resolve(__dirname, './'),
+	},
 });

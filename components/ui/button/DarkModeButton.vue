@@ -13,8 +13,8 @@ const toggleTheme = () => {
 <template>
   <Button 
     variant="ghost" 
-    @click="toggleTheme"
     class="hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
+    @click="toggleTheme"
   >
     <Icon 
       icon="radix-icons:moon" 

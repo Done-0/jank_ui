@@ -1,16 +1,19 @@
 <template>
   <header class="w-full border-b">
     <div class="container flex h-16 items-center">
-      <router-link to="/" class="text-xl font-semibold mr-8 text-foreground/90 hover:text-foreground transition-colors">
+      <NuxtLink to="/" class="text-xl font-semibold mr-8 text-foreground/90 hover:text-foreground transition-colors">
         Jank UI
-      </router-link>
+      </NuxtLink>
 
       <nav class="flex items-center space-x-8">
-        <router-link 
-          v-for="link in navLinks" :key="link.path" :to="link.path"
-          class="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors">
+        <NuxtLink 
+          v-for="link in navLinks" 
+          :key="link.path" 
+          :to="link.path"
+          class="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors"
+        >
           {{ link.name }}
-        </router-link>
+        </NuxtLink>
       </nav>
 
       <div class="flex items-center space-x-4 ml-auto">
@@ -31,7 +34,11 @@
             <DropdownMenu>
               <DropdownMenuTrigger as-child>
                 <Button variant="ghost" size="icon" class="rounded-full">
-                  <img :src="userAvatar" :alt="userName" class="h-8 w-8 rounded-full object-cover">
+                  <img 
+                    :src="userAvatar" 
+                    :alt="userName" 
+                    class="h-8 w-8 rounded-full object-cover"
+                  >
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" class="w-48">
@@ -52,7 +59,9 @@
 </template>
 
 <script setup lang="ts">
-import { Button, DarkModeButton } from '~/components/ui/button'
+import { computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { Button } from '~/components/ui/button'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -61,27 +70,47 @@ import {
 } from '~/components/ui/dropdown-menu'
 import { UserIcon, LogOutIcon } from 'lucide-vue-next'
 import AuthDialog from '~/components/business/auth/AuthDialog.vue'
-import { useAuthStore } from '~/store/auth/auth'
+import { useAuthStore } from '~/store/auth'
 
-const navLinks = [
+interface NavLink {
+  name: string
+  path: string
+}
+
+const navLinks: NavLink[] = [
   { name: '首页', path: '/' },
   { name: '社区', path: '/about' },
   { name: '联系我们', path: '/contact' }
 ]
 
+const router = useRouter()
 const authStore = useAuthStore()
 
-const isAuthenticated = computed(() => authStore.isAuthenticated ?? false)
+const isAuthenticated = computed(() => authStore.isLoggedIn)
 
 const userAvatar = computed(() => {
-  return authStore.userProfile?.avatar || '/default-avatar.png'
+  const user = authStore.user
+  return user?.avatar || '/default-avatar.png'
 })
 
 const userName = computed(() => {
-  return authStore.userProfile?.name || authStore.userInfo?.nickname || '用户'
+  const user = authStore.user
+  return user?.nickname || '用户'
 })
 
-const handleLogout = () => {
-  authStore.logout()
+const handleLogout = async () => {
+  try {
+    await authStore.logout()
+    await router.push('/')
+  } catch (error) {
+    console.error('Logout failed:', error)
+    // 可以添加错误提示
+  }
 }
+
+onMounted(() => {
+  if (typeof window !== 'undefined') {
+    authStore.initializeFromStorage()
+  }
+})
 </script>

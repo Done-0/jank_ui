@@ -22,6 +22,6 @@ const handleError = () => {
     <h1>{{ props.error.statusMessage }}</h1>
     <p>{{ props.error.message }}</p>
     <p>{{ props.error.description }}</p>
-    <button @click="handleError">返回首页</button>
+    <button class="text-line-hover" @click="handleError">返回首页</button>
   </div>
 </template>
