@@ -80,7 +80,7 @@ export class HttpClient {
       const baseURL = this.runtimeConfig.public.apiBase;
       const fullUrl = url.startsWith('http') ? url : `${baseURL}${url}`;
       
-      console.log('Request URL:', fullUrl); // 调试日志
+      console.log('Request baseURL:', baseURL); // 调试日志
 
       const response = await useFetch<ApiResponse<T>>(fullUrl, finalOptions);
 

@@ -1,5 +1,5 @@
 // store/post.ts
-import { postApi } from '~/api/modules/post';
+import { usePostApi } from '~/api/modules/post';
 import type { 
     Post,
     CreatePostRequest, 
@@ -27,7 +27,7 @@ export const usePostStore = defineStore('post', {
         async createPost(form: CreatePostRequest) {
             this.loading = true; // 开始加载
             try {
-                const response = await postApi.createPost(form);
+                const response = await usePostApi().createPost(form);
                 if (response.data) {
                     const post = response.data as Post; // 将响应数据转换为Post类型
                     this.post = post; // 设置当前文章
@@ -40,7 +40,7 @@ export const usePostStore = defineStore('post', {
         async getPost(form: GetPostRequest) {
             this.loading = true; // 开始加载
             try {
-                const response = await postApi.getPost(form);
+                const response = await usePostApi().getPost(form);
                 if (response.data) {
                     const post = response.data as Post; // 将响应数据转换为Post类型
                     this.post = post; // 设置当前文章
@@ -53,7 +53,7 @@ export const usePostStore = defineStore('post', {
         async getAllPosts() {
             this.loading = true; // 开始加载
             try {
-                const response = await postApi.getAllPosts();
+                const response = await usePostApi().getAllPosts();
                 if (response.data) {
                     this.posts = response.data as Post[]; // 将响应数据转换为Post数组
                     localStorage.setItem(STORAGE_KEYS.POST, JSON.stringify(this.posts)); // 存储文章信息
@@ -66,7 +66,7 @@ export const usePostStore = defineStore('post', {
         async deletePost(form: DeletePostRequest) {
             this.loading = true; // 开始加载
             try {
-                const response = await postApi.deletePost(form);
+                const response = await usePostApi().deletePost(form);
                 if (response.data) {
                     const post = response.data as Post; // 将响应数据转换为Post类型
                     this.post = post; // 设置当前文章
@@ -79,7 +79,7 @@ export const usePostStore = defineStore('post', {
         async updatePost(form: UpdatePostRequest) {
             this.loading = true; // 开始加载
             try {
-                const response = await postApi.updatePost(form);
+                const response = await usePostApi().updatePost(form);
                 if (response.data) {
                     const post = response.data as Post; // 将响应数据转换为Post类型
                     this.post = post; // 设置当前文章

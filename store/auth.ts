@@ -1,6 +1,6 @@
 // store/auth.ts
 import { defineStore } from 'pinia';
-import { authApi } from '~/api/modules/auth';
+import { useAuthApi } from '~/api/modules/auth';
 import type { 
   LoginRequest, 
   RegisterRequest, 
@@ -38,7 +38,7 @@ export const useAuthStore = defineStore('auth', {
     async login(form: LoginRequest): Promise<void> {
       this.loading = true;
       try {
-        const response = await authApi.login(form);
+        const response = await useAuthApi().login(form);
         if (response.data) {
           const token = response.data as LoginResponse;
           this.accessToken = token.accessToken;
@@ -63,7 +63,7 @@ export const useAuthStore = defineStore('auth', {
     async register(form: RegisterRequest): Promise<void> {
       this.loading = true;
       try {
-        const response = await authApi.register(form);
+        const response = await useAuthApi().register(form);
         if (response.data) {
           const token = response.data as RegisterResponse;
           this.accessToken = token.accessToken;
@@ -87,7 +87,7 @@ export const useAuthStore = defineStore('auth', {
     // 登出
     async logout(): Promise<void> {
       try {
-        await authApi.logout();
+        await useAuthApi().logout();
       } catch (error) {
         console.error('Logout failed:', error);
       } finally {
@@ -107,7 +107,7 @@ export const useAuthStore = defineStore('auth', {
     async fetchProfile(): Promise<void> {
       this.loading = true;
       try {
-        const response = await authApi.getProfile();
+        const response = await useAuthApi().getProfile();
         if (response.data) {
           this.user = response.data as ProfileResponse;
           
@@ -153,7 +153,7 @@ export const useAuthStore = defineStore('auth', {
     async sendEmailVerificationCode(email: string): Promise<void> {
       this.loading = true;
       try {
-        await authApi.sendEmailVerificationCode({ email });
+        await useAuthApi().sendEmailVerificationCode({ email });
       } catch (error) {
         console.error('Failed to send verification code:', error);
         throw error;
@@ -166,7 +166,7 @@ export const useAuthStore = defineStore('auth', {
     async genImgVerification(email: string): Promise<string | null> {
       this.loading = true;
       try {
-        const response = await authApi.genImgVerification({ email });
+        const response = await useAuthApi().genImgVerification({ email });
         if (response.data) {
           const data = response.data as ImgVerificationResponse;
           return data.imgBase64;

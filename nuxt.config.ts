@@ -1,6 +1,8 @@
 import { resolve } from 'pathe'
 import { loadEnv } from 'vite'
 
+const env = loadEnv(process.env.NODE_ENV as string, 'env/.env.dev');
+
 export default defineNuxtConfig({
   compatibilityDate: '2024-04-03',
   devtools: { enabled: true },
@@ -13,7 +15,7 @@ export default defineNuxtConfig({
   },
   runtimeConfig: {
     public: {
-      apiBase: loadEnv(process.argv[process.argv.length - 1], 'env/.env.dev').VITE_API_URL,
+      apiBase: env.VITE_API_URL || 'http://127.0.0.1:9010',
     },
   },
   modules: [
