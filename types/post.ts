@@ -14,7 +14,7 @@ export enum UserStatus {
 export interface Post {
     id: string;              // 文章唯一标识
     title: string;           // 文章标题
-    img: string;             // 文章图片
+    image: string;           // 文章图片
     visibility: string;      // 文章可见性
     contentHTML: string;     // 文章内容HTML
     summary?: string | null; // 文章摘要

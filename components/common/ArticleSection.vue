@@ -2,18 +2,12 @@
   <section>
     <Card class="overflow-hidden">
       <!-- Loading State -->
-      <CardContent 
-        v-if="loading" 
-        class="flex min-h-[200px] items-center justify-center"
-      >
+      <CardContent v-if="loading" class="flex min-h-[200px] items-center justify-center">
         <span class="text-muted-foreground">玩命加载中...</span>
       </CardContent>
 
       <!-- Error State -->
-      <CardContent 
-        v-else-if="error" 
-        class="flex min-h-[200px] items-center justify-center text-destructive"
-      >
+      <CardContent v-else-if="error" class="flex min-h-[200px] items-center justify-center text-destructive">
         {{ error }}
       </CardContent>
 
@@ -27,7 +21,7 @@
           <!-- Article Image -->
           <div class="relative w-1/3 overflow-hidden">
             <img 
-              :src="post.img || '/default-article-image.jpg'" 
+              :src="post.image" 
               :alt="post.title" 
               class="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
             >
@@ -57,7 +51,27 @@
           show-edges
           @update:page="handlePageChange"
         >
-          <!-- Pagination components... -->
+          <PaginationList v-slot="{ items }" class="flex items-center gap-2">
+            <PaginationFirst />
+            <PaginationPrev />
+
+            <template v-for="(item, index) in items" :key="index">
+              <PaginationListItem v-if="item.type === 'page'" :value="item.value" as-child>
+                <Button 
+                  :variant="item.value === currentPage ? 'default' : 'outline'" 
+                  class="h-9 w-9 p-0"
+                  @click="handlePageChange(item.value)"
+                >
+                  {{ item.value }}
+                </Button>
+              </PaginationListItem>
+
+              <PaginationEllipsis v-else />
+            </template>
+
+            <PaginationNext />
+            <PaginationLast />
+          </PaginationList>
         </Pagination>
       </CardFooter>
     </Card>
@@ -67,9 +81,9 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { usePost } from '~/composables/usePost'
-import { usePostStore } from '~/store/post';
+import { usePostStore } from '~/store/post'
 
-const ITEMS_PER_PAGE = 10
+const ITEMS_PER_PAGE = 5 // 每页显示5个文章
 const currentPage = ref(1)
 const { posts, loading, error } = usePost()
 
@@ -80,9 +94,9 @@ const paginatedPosts = computed(() => {
   return posts.value?.slice(start, end) || []
 })
 
-// 添加获取摘要的函数
+// 获取文章摘要
 const getPostSummary = (html: string) => {
-  const tmp = document.createElement('div')
+  const tmp = document.createElement('body')
   tmp.innerHTML = html
   const text = tmp.textContent || tmp.innerText || ''
   return text.slice(0, 100) + (text.length > 100 ? '...' : '')
@@ -100,8 +114,10 @@ const handlePageChange = (page: number) => {
 
 // 组件挂载时获取文章列表
 onMounted(async () => {
+  console.log('Initial loading:', loading.value)  // 初始值是否为 true？
   const store = usePostStore()
   await store.getAllPosts()
+  console.log('Final loading:', loading.value)  // 加载完成后是否为 false？
 })
 </script>
 

@@ -75,42 +75,45 @@ export class HttpClient {
         ...options?.headers,
       },
     } as UseFetchOptions<ApiResponse<T>>;
-
+  
     try {
       const baseURL = this.runtimeConfig.public.apiBase;
       const fullUrl = url.startsWith('http') ? url : `${baseURL}${url}`;
-      
-      console.log('Request baseURL:', baseURL); // 调试日志
-
+    
       const response = await useFetch<ApiResponse<T>>(fullUrl, finalOptions);
-
-      if (!response.data.value) {
-        throw new ApiError(
-          ApiStatusCode.ERROR, 
-          'No response data received'
-        );
+  
+      // 检查 response.data 是否为 Ref 对象，解包得到实际值
+      const rawData = response.data;
+      const resolvedData = rawData?.value || rawData;
+  
+      if (!resolvedData) {
+        throw new ApiError(ApiStatusCode.ERROR, 'No response data received');
       }
-
-      return response.data.value;
+  
+      // 强制类型断言为 ApiResponse<T>
+      const result = resolvedData as ApiResponse<T>;
+  
+      console.log('Resolved Response Data:', result);
+      return result;
     } catch (error) {
       if (error instanceof ApiError) {
         throw error;
       }
-      
+  
       if (error instanceof Error) {
         if (error.name === 'AbortError') {
           throw new NetworkError('Request timeout');
         }
         throw new NetworkError(error.message);
       }
-
+  
       throw new ApiError(
-        ApiStatusCode.ERROR, 
+        ApiStatusCode.ERROR,
         API_ERROR_MESSAGES[ApiStatusCode.ERROR]
       );
     }
   }
-
+  
   /**
    * 发送 GET 请求
    * @template T - 响应数据类型
@@ -119,12 +122,12 @@ export class HttpClient {
    * @returns {Promise<ApiResponse<T>>} 请求响应
    */
   public get<T>(
-    url: string, 
+    url: string,
     options?: Omit<UseFetchOptions<ApiResponse<T>>, 'method'>
   ): Promise<ApiResponse<T>> {
-    return this.request<T>(url, { 
-      ...options, 
-      method: HttpMethod.GET 
+    return this.request<T>(url, {
+      ...options,
+      method: HttpMethod.GET,
     });
   }
 
@@ -137,14 +140,14 @@ export class HttpClient {
    * @returns {Promise<ApiResponse<T>>} 请求响应
    */
   public post<T>(
-    url: string, 
-    data?: Record<string, unknown>, 
+    url: string,
+    data?: Record<string, unknown>,
     options?: Omit<UseFetchOptions<ApiResponse<T>>, 'method' | 'body'>
   ): Promise<ApiResponse<T>> {
-    return this.request<T>(url, { 
-      ...options, 
-      method: HttpMethod.POST, 
-      body: data 
+    return this.request<T>(url, {
+      ...options,
+      method: HttpMethod.POST,
+      body: data,
     });
   }
 
@@ -157,14 +160,14 @@ export class HttpClient {
    * @returns {Promise<ApiResponse<T>>} 请求响应
    */
   public put<T>(
-    url: string, 
-    data?: Record<string, unknown>, 
+    url: string,
+    data?: Record<string, unknown>,
     options?: Omit<UseFetchOptions<ApiResponse<T>>, 'method' | 'body'>
   ): Promise<ApiResponse<T>> {
-    return this.request<T>(url, { 
-      ...options, 
-      method: HttpMethod.PUT, 
-      body: data 
+    return this.request<T>(url, {
+      ...options,
+      method: HttpMethod.PUT,
+      body: data,
     });
   }
 
@@ -176,12 +179,12 @@ export class HttpClient {
    * @returns {Promise<ApiResponse<T>>} 请求响应
    */
   public delete<T>(
-    url: string, 
+    url: string,
     options?: Omit<UseFetchOptions<ApiResponse<T>>, 'method'>
   ): Promise<ApiResponse<T>> {
-    return this.request<T>(url, { 
-      ...options, 
-      method: HttpMethod.DELETE 
+    return this.request<T>(url, {
+      ...options,
+      method: HttpMethod.DELETE,
     });
   }
 
@@ -194,14 +197,14 @@ export class HttpClient {
    * @returns {Promise<ApiResponse<T>>} 请求响应
    */
   public patch<T>(
-    url: string, 
-    data?: Record<string, unknown>, 
+    url: string,
+    data?: Record<string, unknown>,
     options?: Omit<UseFetchOptions<ApiResponse<T>>, 'method' | 'body'>
   ): Promise<ApiResponse<T>> {
-    return this.request<T>(url, { 
-      ...options, 
-      method: HttpMethod.PATCH, 
-      body: data 
+    return this.request<T>(url, {
+      ...options,
+      method: HttpMethod.PATCH,
+      body: data,
     });
   }
 }

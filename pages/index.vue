@@ -25,33 +25,39 @@
 import Announcement from '~/components/common/Announcement.vue'
 import Aside from '~/components/common/Aside.vue'
 import ArticleSection from '~/components/common/ArticleSection.vue'
-import { onMounted } from 'vue'
+import { onMounted, ref, watch } from 'vue'
 import { usePost } from '~/composables/usePost'
 import { usePostStore } from '~/store/post'
-import { STORAGE_KEYS } from '~/types/post';
 
 definePageMeta({
   layout: 'default'
 })
 
-// 使用 Post 组合式函数
-const { error } = usePost()
+const { error, refreshPosts } = usePost()
 
-// 背景图片配置
-const leftBgImage = 'assets/img/test1.png' // 替换为实际的图片路径
-const rightBgImage = 'assets/img/test2.png' // 替换为实际的图片路径
+const leftBgImage = ref('')
+const rightBgImage = ref('')
 
 // 页面挂载时初始化数据
 onMounted(async () => {
   const store = usePostStore()
-  
-  // 检查是否有缓存数据
-  const savedPosts = localStorage.getItem(STORAGE_KEYS.POST)
-  if (savedPosts) {
-    // 直接调用 getAllPosts 来更新 store 中的数据
-    await store.getAllPosts()
-  } else {
-    await store.getAllPosts()
-  }
+
+  // 每次刷新页面时，重新获取所有文章数据
+  await store.getAllPosts()
+
+  // 监听 store 中的 posts 数据变化，更新公告板图片
+  watch(
+    () => store.posts,
+    (posts) => {
+      if (posts.length >= 2) {
+        leftBgImage.value = posts[0]?.image;
+        rightBgImage.value = posts[1]?.image;
+      }
+    },
+    { immediate: true } // 组件加载时立即执行一次 watch
+  )
+
+  // 也可以在这里调用 refreshPosts 方法以确保更新
+  refreshPosts()
 })
 </script>
