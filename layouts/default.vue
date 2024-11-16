@@ -19,9 +19,9 @@
 </template>
 
 <script setup lang="ts">
-import useAuth from '~/composables/auth/useAuth'
-import NavBar from '~/layouts/common/NavBar.vue'
-// import Footer from '~/layouts/common/Footer.vue'
+import NavBar from '~/components/common/NavBar.vue'
+// import Footer from '~/components/common/Footer.vue'
+import { useAuth } from '~/composables/useAuth'
 
 const { isLoggedIn, login, logout } = useAuth()
 </script>

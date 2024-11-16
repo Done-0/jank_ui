@@ -8,61 +8,56 @@
 
     <!-- 公告板 -->
     <Announcement 
-      :left-content="hotContent" 
-      :right-content="recommendedContent"
-      :left-bg-image="'https://haowallpaper.com/link/common/file/previewFileImg/15737859935015232'"
-      :right-bg-image="'https://haowallpaper.com/link/common/file/previewFileImg/15737861172728128'" 
+      :left-bg-image="leftBgImage"
+      :right-bg-image="rightBgImage" 
       class="w-full" 
     />
 
     <!-- 文章区域 -->
     <main class="w-full max-w-7xl mx-auto flex gap-6 py-6">
       <Aside class="w-64 hidden lg:block" />
-      <ArticleSection 
-        :articles="paginatedArticles" 
-        :loading="loading" 
-        class="flex-1 min-w-0" 
-      />
+      <ArticleSection class="flex-1 min-w-0" />
     </main>
   </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted } from 'vue'
-import Announcement from '~/layouts/common/Announcement.vue'
-import Aside from '~/layouts/common/Aside.vue'
-import ArticleSection from '~/layouts/common/ArticleSection.vue'
-import useContent from '~/composables/article/useContent'
+import Announcement from '~/components/common/Announcement.vue'
+import Aside from '~/components/common/Aside.vue'
+import ArticleSection from '~/components/common/ArticleSection.vue'
+import { onMounted, ref, watch } from 'vue'
+import { usePost } from '~/composables/usePost'
+import { usePostStore } from '~/store/post'
 
 definePageMeta({
   layout: 'default'
 })
 
-const {
-  recommendedContent,
-  hotContent,
-  paginatedArticles,
-  loading,
-  error,
-  fetchArticles,
-  articles,
-  currentPage
-} = useContent()
+const { error, refreshPosts } = usePost()
 
-// 页面挂载时获取文章数据
-onMounted(() => {
-  // 检查是否已有缓存数据
-  const savedArticles = localStorage.getItem('articles')
-  if (savedArticles) {
-    // 如果有缓存数据，直接加载
-    const cachedArticles = JSON.parse(savedArticles)
-    // 更新文章数据
-    articles.value = cachedArticles
-    // 强制更新当前页数，保证第一页的数据展示
-    currentPage.value = 1
-  } else {
-    // 如果没有缓存，加载数据
-    fetchArticles()
-  }
+const leftBgImage = ref('')
+const rightBgImage = ref('')
+
+// 页面挂载时初始化数据
+onMounted(async () => {
+  const store = usePostStore()
+
+  // 每次刷新页面时，重新获取所有文章数据
+  await store.getAllPosts()
+
+  // 监听 store 中的 posts 数据变化，更新公告板图片
+  watch(
+    () => store.posts,
+    (posts) => {
+      if (posts.length >= 2) {
+        leftBgImage.value = posts[0]?.image;
+        rightBgImage.value = posts[1]?.image;
+      }
+    },
+    { immediate: true } // 组件加载时立即执行一次 watch
+  )
+
+  // 也可以在这里调用 refreshPosts 方法以确保更新
+  refreshPosts()
 })
 </script>

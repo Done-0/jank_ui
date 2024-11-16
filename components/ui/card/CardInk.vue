@@ -55,7 +55,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { Card, CardContent, CardFooter } from '~/components/ui/card'
-import UseCloudAnimation from '~/composables/animation/CloudAnimation'
+import UseCloudAnimation from '~/composables/animation/cloudAnimation'
 
 interface SocialLink {
   name: string

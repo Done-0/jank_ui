@@ -1,22 +1,6 @@
-import { fileURLToPath } from 'url';
-
 export default defineNuxtConfig({
   compatibilityDate: '2024-04-03',
   devtools: { enabled: true },
-
-  // 引入自动导入配置
-  imports: {
-    autoImport: true
-  },
-
-  // 运行时配置
-  runtimeConfig: {
-    public: {
-      apiBase: process.env.NUXT_PUBLIC_API_BASE || 'http://127.0.0.1:9010'
-    }
-  },
-
-  // 应用程序相关配置
   app: {
     head: {
       charset: 'utf-8',
@@ -24,28 +8,21 @@ export default defineNuxtConfig({
     },
     pageTransition: { name: 'page', mode: 'out-in' },
   },
-
-  // TypeScript 配置
-  typescript: {
-    typeCheck: true
+  runtimeConfig: {
+    baseUrl: '',
+    public: {
+      version: '1.0.0',
+      apiBase: process.env.VITE_API_URL,
+      baseUrl: process.env.VITE_REQUEST_BASE_URL
+    },
   },
-
-  // 模块配置
   modules: [
-    '@nuxt/eslint',
     '@nuxtjs/tailwindcss',
     'shadcn-nuxt',
     '@pinia/nuxt'
   ],
-
-  // Shadcn 模块配置
   shadcn: {
     prefix: '',
     componentDir: './components/ui'
-  },
-
-  // 别名配置
-  alias: {
-    '~': fileURLToPath(new URL('.', import.meta.url))
   },
 });

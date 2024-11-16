@@ -11,7 +11,6 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
 import {
   Dialog,
   DialogContent,
@@ -31,5 +30,3 @@ const handleSuccess = () => {
   isOpen.value = false
 }
 </script>
-
-
