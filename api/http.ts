@@ -1,230 +1,373 @@
+/**
+ * HTTP 客户端实现
+ * @file http-client.ts
+ */
+
 import type { UseFetchOptions } from '#app';
-import type { ApiResponse, ApiConfig } from '~/api/types';
-import { ApiError, NetworkError } from '~/api/errors';
-import { ApiStatusCode, API_ERROR_MESSAGES } from '~/api/types';
+import { ApiError, NetworkError, AuthError, ValidationError, UnknownError } from './errors';
+import type { ApiResponse, ApiConfig, ResponseInterceptor, RetryConfig } from './types';
+import { ApiStatusCode, ApiErrorType, API_ERROR_MESSAGES } from './types';
+import { 
+    isApiResponse, 
+    getErrorType, 
+    formatError, 
+    retry, 
+    isSuccessStatus,
+    generateRequestId,
+    formatTimestamp
+} from './helper';
 
 /**
  * HTTP 请求方法
- * @enum {string}
  */
 export enum HttpMethod {
-  GET = 'GET',
-  POST = 'POST',
-  PUT = 'PUT',
-  DELETE = 'DELETE',
-  PATCH = 'PATCH',
+    GET    = 'GET',
+    POST   = 'POST',
+    PUT    = 'PUT',
+    DELETE = 'DELETE',
+    PATCH  = 'PATCH',
 }
 
 /**
  * HTTP 客户端配置接口
- * @interface HttpClientConfig
- * @extends {ApiConfig}
  */
 export interface HttpClientConfig extends ApiConfig {
-  /** 重试次数 */
-  readonly retryTimes?: number;
-  /** 重试延迟时间(ms) */
-  readonly retryDelay?: number;
-  /** 超时时间(ms) */
-  readonly timeout?: number;
+    readonly retryTimes?: number;
+    readonly retryDelay?: number;
+    readonly timeout?: number;
+    readonly headers?: Record<string, string>;
 }
 
 /**
+ * 自定义请求配置类型
+ */
+type CustomFetchOptions<T = unknown> = Partial<UseFetchOptions<ApiResponse<T>>>;
+
+/**
  * HTTP 客户端类
- * @class HttpClient
  */
 export class HttpClient {
-  private readonly defaultOptions: Partial<UseFetchOptions<unknown>>;
-  private readonly runtimeConfig: ReturnType<typeof useRuntimeConfig>;
-
-  /**
-   * 创建 HTTP 客户端实例
-   * @param {HttpClientConfig} config - 客户端配置
-   */
-  constructor(private readonly config: HttpClientConfig) {
-    this.runtimeConfig = useRuntimeConfig();
-    this.defaultOptions = {
-      headers: {
-        'Content-Type': 'application/json',
-        ...this.config.headers,
-      },
-      timeout: this.config.timeout || 10000,
-      retry: this.config.retryTimes || 0,
-    };
-  }
-
-  /**
-   * 发送 HTTP 请求
-   * @template T - 响应数据类型
-   * @param {string} url - 请求地址
-   * @param {UseFetchOptions<ApiResponse<T>>} [options] - 请求配置
-   * @returns {Promise<ApiResponse<T>>} 请求响应
-   * @throws {ApiError} API 错误
-   * @throws {NetworkError} 网络错误
-   * @private
-   */
-  private async request<T>(
-    url: string,
-    options?: UseFetchOptions<ApiResponse<T>>
-  ): Promise<ApiResponse<T>> {
-    const finalOptions = {
-      ...this.defaultOptions,
-      ...options,
-      headers: {
-        ...this.defaultOptions.headers,
-        ...options?.headers,
-      },
-    } as UseFetchOptions<ApiResponse<T>>;
-  
-    try {
-      const baseURL = this.runtimeConfig.public.apiBase;
-      const fullUrl = url.startsWith('http') ? url : `${baseURL}${url}`;
+    private readonly runtimeConfig;
+    private readonly defaultOptions: CustomFetchOptions;
+    private readonly responseInterceptor?: ResponseInterceptor;
     
-      const response = await useFetch<ApiResponse<T>>(fullUrl, finalOptions);
-  
-      // 检查 response.data 是否为 Ref 对象，解包得到实际值
-      const rawData = response.data;
-      const resolvedData = rawData?.value || rawData;
-  
-      if (!resolvedData) {
-        throw new ApiError(ApiStatusCode.ERROR, 'No response data received');
-      }
-  
-      // 强制类型断言为 ApiResponse<T>
-      const result = resolvedData as ApiResponse<T>;
-  
-      console.log('Resolved Response Data:', result);
-      return result;
-    } catch (error) {
-      if (error instanceof ApiError) {
-        throw error;
-      }
-  
-      if (error instanceof Error) {
-        if (error.name === 'AbortError') {
-          throw new NetworkError('Request timeout');
-        }
-        throw new NetworkError(error.message);
-      }
-  
-      throw new ApiError(
-        ApiStatusCode.ERROR,
-        API_ERROR_MESSAGES[ApiStatusCode.ERROR]
-      );
+    constructor(
+        private readonly config: HttpClientConfig,
+        responseInterceptor?: ResponseInterceptor
+    ) {
+        this.runtimeConfig = useRuntimeConfig();
+        this.responseInterceptor = responseInterceptor;
+        this.defaultOptions = this.initializeDefaultOptions();
     }
-  }
-  
-  /**
-   * 发送 GET 请求
-   * @template T - 响应数据类型
-   * @param {string} url - 请求地址
-   * @param {Omit<UseFetchOptions<ApiResponse<T>>, 'method'>} [options] - 请求配置
-   * @returns {Promise<ApiResponse<T>>} 请求响应
-   */
-  public get<T>(
-    url: string,
-    options?: Omit<UseFetchOptions<ApiResponse<T>>, 'method'>
-  ): Promise<ApiResponse<T>> {
-    return this.request<T>(url, {
-      ...options,
-      method: HttpMethod.GET,
-    });
-  }
 
-  /**
-   * 发送 POST 请求
-   * @template T - 响应数据类型
-   * @param {string} url - 请求地址
-   * @param {Record<string, unknown>} [data] - 请求数据
-   * @param {Omit<UseFetchOptions<ApiResponse<T>>, 'method' | 'body'>} [options] - 请求配置
-   * @returns {Promise<ApiResponse<T>>} 请求响应
-   */
-  public post<T>(
-    url: string,
-    data?: Record<string, unknown>,
-    options?: Omit<UseFetchOptions<ApiResponse<T>>, 'method' | 'body'>
-  ): Promise<ApiResponse<T>> {
-    return this.request<T>(url, {
-      ...options,
-      method: HttpMethod.POST,
-      body: data,
-    });
-  }
+    private initializeDefaultOptions(): CustomFetchOptions {
+        const headers: Record<string, string> = {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            ...(this.config.headers || {})
+        };
+        
+        return {
+            headers,
+            timeout: this.config.timeout || 10000,
+            retry: this.config.retryTimes || 0,
+        };
+    }
 
-  /**
-   * 发送 PUT 请求
-   * @template T - 响应数据类型
-   * @param {string} url - 请求地址
-   * @param {Record<string, unknown>} [data] - 请求数据
-   * @param {Omit<UseFetchOptions<ApiResponse<T>>, 'method' | 'body'>} [options] - 请求配置
-   * @returns {Promise<ApiResponse<T>>} 请求响应
-   */
-  public put<T>(
-    url: string,
-    data?: Record<string, unknown>,
-    options?: Omit<UseFetchOptions<ApiResponse<T>>, 'method' | 'body'>
-  ): Promise<ApiResponse<T>> {
-    return this.request<T>(url, {
-      ...options,
-      method: HttpMethod.PUT,
-      body: data,
-    });
-  }
+    private async request<TResponse>(
+        url: string,
+        options?: CustomFetchOptions<TResponse>
+    ): Promise<ApiResponse<TResponse>> {
+        const mergedHeaders = this.buildHeaders(options?.headers as Record<string, string>);
+        const finalOptions = this.buildRequestOptions<TResponse>(options, mergedHeaders);
 
-  /**
-   * 发送 DELETE 请求
-   * @template T - 响应数据类型
-   * @param {string} url - 请求地址
-   * @param {Omit<UseFetchOptions<ApiResponse<T>>, 'method'>} [options] - 请求配置
-   * @returns {Promise<ApiResponse<T>>} 请求响应
-   */
-  public delete<T>(
-    url: string,
-    options?: Omit<UseFetchOptions<ApiResponse<T>>, 'method'>
-  ): Promise<ApiResponse<T>> {
-    return this.request<T>(url, {
-      ...options,
-      method: HttpMethod.DELETE,
-    });
-  }
+        try {
+            return await this.executeRequest<TResponse>(url, finalOptions);
+        } catch (error: unknown) {
+            return await this.handleRequestError(error);
+        }
+    }
 
-  /**
-   * 发送 PATCH 请求
-   * @template T - 响应数据类型
-   * @param {string} url - 请求地址
-   * @param {Record<string, unknown>} [data] - 请求数据
-   * @param {Omit<UseFetchOptions<ApiResponse<T>>, 'method' | 'body'>} [options] - 请求配置
-   * @returns {Promise<ApiResponse<T>>} 请求响应
-   */
-  public patch<T>(
-    url: string,
-    data?: Record<string, unknown>,
-    options?: Omit<UseFetchOptions<ApiResponse<T>>, 'method' | 'body'>
-  ): Promise<ApiResponse<T>> {
-    return this.request<T>(url, {
-      ...options,
-      method: HttpMethod.PATCH,
-      body: data,
-    });
-  }
+    private buildHeaders(optionsHeaders?: Record<string, string>): Record<string, string> {
+        const defaultHeaders = this.defaultOptions.headers as Record<string, string> || {};
+        return {
+            ...defaultHeaders,
+            ...(optionsHeaders || {}),
+        };
+    }
+
+    private buildRequestOptions<TResponse>(
+        options?: CustomFetchOptions<TResponse>,
+        headers?: Record<string, string>
+    ): UseFetchOptions<ApiResponse<TResponse>> {
+        const finalOptions: UseFetchOptions<ApiResponse<TResponse>> = {
+            ...this.defaultOptions,
+            ...options,
+            headers: {
+                ...headers,
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+            } as HeadersInit,
+        } as UseFetchOptions<ApiResponse<TResponse>>;
+        
+        if (finalOptions.body && typeof finalOptions.body === 'object') {
+            finalOptions.body = JSON.stringify(finalOptions.body);
+        }
+        
+        delete finalOptions.getCachedData;
+        delete finalOptions.transform;
+        
+        return finalOptions;
+    }
+
+    private async executeRequest<TResponse>(
+        url: string,
+        options: UseFetchOptions<ApiResponse<TResponse>>,
+    ): Promise<ApiResponse<TResponse>> {
+        const makeRequest = async (): Promise<ApiResponse<TResponse>> => {
+            const baseURL = this.runtimeConfig.public.apiBase;
+            const fullUrl = url.startsWith('http') ? url : `${baseURL}${url}`;
+
+            const fetchOptions: UseFetchOptions<ApiResponse<TResponse>> = {
+                ...options,
+                transform: (response: unknown): ApiResponse<TResponse> => {
+                    if (!response) {
+                        return {
+                            code: ApiStatusCode.ERROR,
+                            msg: API_ERROR_MESSAGES[ApiStatusCode.ERROR],
+                            data: null,
+                            requestId: generateRequestId(),
+                            timestamp: formatTimestamp(Date.now())
+                        } as ApiResponse<TResponse>;
+                    }
+                    if (typeof response === 'string') {
+                        try {
+                            return JSON.parse(response);
+                        } catch {
+                            return {
+                                code: ApiStatusCode.ERROR,
+                                msg: response,
+                                data: null,
+                                requestId: generateRequestId(),
+                                timestamp: formatTimestamp(Date.now())
+                            } as ApiResponse<TResponse>;
+                        }
+                    }
+                    if (isApiResponse(response)) {
+                        return response as ApiResponse<TResponse>;
+                    }
+                    return {
+                        code: ApiStatusCode.SUCCESS,
+                        msg: 'OK',
+                        data: response as TResponse,
+                        requestId: generateRequestId(), 
+                        timestamp: formatTimestamp(Date.now())
+                    };
+                },
+                onResponseError({ response }) {
+                    console.error('Response error:', {
+                        status: response.status,
+                        statusText: response.statusText,
+                    });
+                }
+            };
+
+            const { data, error } = await useFetch<ApiResponse<TResponse>>(fullUrl, fetchOptions);
+            return await this.processResponse(data, error);
+        };
+
+        const retryConfig = this.getRetryConfig();
+        return await retry<ApiResponse<TResponse>>(
+            makeRequest,
+            retryConfig.times,
+            retryConfig.delay,
+            retryConfig.shouldRetry
+        );
+    }
+
+    private async processResponse<TResponse>(
+        data: Ref<ApiResponse<TResponse> | null>,
+        error: Ref<Error | null>
+    ): Promise<ApiResponse<TResponse>> {
+        if (error.value) {
+            console.error('Response error:', error.value);
+            throw error.value;
+        }
+
+        if (!data.value) {
+            return {
+                code: ApiStatusCode.ERROR,
+                msg: API_ERROR_MESSAGES[ApiStatusCode.ERROR],
+                data: null
+            } as ApiResponse<TResponse>;
+        }
+
+        let result = data.value;
+
+        try {
+            if (this.responseInterceptor?.onSuccess) {
+                result = await this.responseInterceptor.onSuccess(result);
+            }
+
+            if (!('code' in result) && !('msg' in result)) {
+              return {
+                  code: ApiStatusCode.SUCCESS,
+                  msg: 'OK',
+                  data: result as unknown as TResponse,
+                  requestId: generateRequestId(),
+                  timestamp: formatTimestamp(Date.now())
+              };
+          }
+
+            if (!isSuccessStatus(result.code)) {
+                throw new ApiError(result.code, result.msg || 'Request failed', result.data);
+            }
+
+            return result;
+        } catch (err) {
+            console.error('Process response error:', err);
+            if (err instanceof ApiError) {
+                throw err;
+            }
+            throw new ApiError(
+                ApiStatusCode.ERROR,
+                err instanceof Error ? err.message : 'Unknown error'
+            );
+        }
+    }
+
+    private getRetryConfig(): RetryConfig {
+        return {
+            times: this.config.retryTimes || 0,
+            delay: this.config.retryDelay || 1000,
+            shouldRetry: (error: unknown) => {
+                const errorType = getErrorType(error);
+                return errorType === ApiErrorType.NETWORK;
+            }
+        };
+    }
+
+    private async handleRequestError(error: unknown): Promise<never> {
+        console.error('Handle request error:', error);
+
+        if (this.responseInterceptor?.onError) {
+            try {
+                return await this.responseInterceptor.onError(error);
+            } catch (interceptorError) {
+                console.error('Error interceptor failed:', interceptorError);
+            }
+        }
+
+        const errorType = getErrorType(error);
+        const errorMessage = formatError(error);
+
+        // 尝试从错误中提取有用信息
+        const errorResponse = error instanceof ApiError ? error : null;
+        const statusCode = errorResponse?.code || ApiStatusCode.ERROR;
+        const message = errorResponse?.message || errorMessage;
+
+        switch (errorType) {
+            case ApiErrorType.NETWORK:
+                throw new NetworkError(message);
+            case ApiErrorType.AUTH:
+                throw new AuthError(message);
+            case ApiErrorType.VALIDATION:
+                throw new ValidationError(message);
+            case ApiErrorType.BUSINESS:
+                throw new ApiError(statusCode, message);
+            default:
+                throw new UnknownError(message);
+        }
+    }
+
+    public get<T>(
+        url: string,
+        options?: Omit<CustomFetchOptions<T>, 'method'>
+    ): Promise<ApiResponse<T>> {
+        return this.request<T>(url, {
+            ...options,
+            method: HttpMethod.GET,
+        });
+    }
+
+    public post<T>(
+        url: string,
+        data?: Record<string, unknown>,
+        options?: Omit<CustomFetchOptions<T>, 'method' | 'body'>
+    ): Promise<ApiResponse<T>> {
+        return this.request<T>(url, {
+            ...options,
+            method: HttpMethod.POST,
+            body: data,
+        });
+    }
+
+    public put<T>(
+        url: string,
+        data?: Record<string, unknown>,
+        options?: Omit<CustomFetchOptions<T>, 'method' | 'body'>
+    ): Promise<ApiResponse<T>> {
+        return this.request<T>(url, {
+            ...options,
+            method: HttpMethod.PUT,
+            body: data,
+        });
+    }
+
+    public delete<T>(
+        url: string,
+        options?: Omit<CustomFetchOptions<T>, 'method'>
+    ): Promise<ApiResponse<T>> {
+        return this.request<T>(url, {
+            ...options,
+            method: HttpMethod.DELETE,
+        });
+    }
+
+    public patch<T>(
+        url: string,
+        data?: Record<string, unknown>,
+        options?: Omit<CustomFetchOptions<T>, 'method' | 'body'>
+    ): Promise<ApiResponse<T>> {
+        return this.request<T>(url, {
+            ...options,
+            method: HttpMethod.PATCH,
+            body: data,
+        });
+    }
 }
 
 /**
  * 创建 HTTP 客户端实例
  */
-export const createHttpClient = () => {
-  const config = useRuntimeConfig();
-  return new HttpClient({
-    baseURL: config.public.apiBase,
-    timeout: 10000,
-    retryTimes: 1,
-    retryDelay: 1000,
-  });
+export const createHttpClient = (
+    responseInterceptor?: ResponseInterceptor
+): HttpClient => {
+    const config = useRuntimeConfig();
+    const version = typeof config.public.version === 'string' 
+        ? config.public.version 
+        : '1.0.0';
+        
+    const headers: Record<string, string> = {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'X-Client-Version': version
+    };
+    
+    return new HttpClient({
+        baseURL: config.public.apiBase,
+        timeout: 10000,
+        retryTimes: 1,
+        retryDelay: 1000,
+        headers
+    }, responseInterceptor);
 };
 
 /**
- * 获取 HTTP 客户端实例的 composable
+ * HTTP 客户端 Hook
  */
-export const useHttp = () => {
-  return createHttpClient();
+export const useHttp = (
+    responseInterceptor?: ResponseInterceptor
+): HttpClient => {
+    return createHttpClient(responseInterceptor);
 };

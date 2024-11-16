@@ -49,7 +49,7 @@ export interface ApiResponse<T = unknown> {
     readonly msg: string;
     readonly data: T | null;
     readonly requestId: string;
-    readonly timeStamp: number;
+    readonly timestamp: string;
 }
 
 /**

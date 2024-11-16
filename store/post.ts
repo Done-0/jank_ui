@@ -1,29 +1,22 @@
-// store/post.ts
 import { defineStore } from 'pinia';
 import { usePostApi } from '~/api/modules/post';
 import type { Post, CreatePostRequest, GetPostRequest, DeletePostRequest, UpdatePostRequest } from '~/types/post';
 import { STORAGE_KEYS } from '~/types/post';
 
-/**
- * Pinia Store 用于管理文章状态
- */
 export const usePostStore = defineStore('post', {
   state: () => ({
     post: null as Post | null,
     posts: [] as Post[],
-    loading: true,
+    loading: false,
     error: null as string | null,
   }),
   actions: {
-    // 设置加载状态
     setLoading(loading: boolean) {
       this.loading = loading;
     },
-    // 设置错误信息
     setError(error: string | null) {
       this.error = error;
     },
-    // 清除错误信息
     clearError() {
       this.error = null;
     },
@@ -64,10 +57,13 @@ export const usePostStore = defineStore('post', {
       this.setLoading(true);
       this.clearError();
       try {
-        const { data } = await usePostApi().getAllPosts();
-        if (data) {
-          this.posts = data; // 存储所有文章
-          localStorage.setItem(STORAGE_KEYS.POST, JSON.stringify(data)); // 缓存到 localStorage
+        const response = await usePostApi().getAllPosts();
+        const data = response?.data?.data;
+        if (Array.isArray(data)) {
+          this.posts = data;
+          localStorage.setItem(STORAGE_KEYS.POST, JSON.stringify(data));
+        } else {
+          this.setError('Invalid data format');
         }
       } catch (e) {
         this.setError('Failed to fetch all posts.');
@@ -80,13 +76,14 @@ export const usePostStore = defineStore('post', {
     async deletePost(form: DeletePostRequest) {
       this.setLoading(true);
       this.clearError();
+
+      const previousPosts = [...this.posts];
+      this.posts = this.posts.filter(post => post.id !== form.id);
+
       try {
-        const { data } = await usePostApi().deletePost(form);
-        if (data) {
-          // 从列表中删除已删除的文章
-          this.posts = this.posts.filter(post => post.id);
-        }
+        await usePostApi().deletePost(form);
       } catch (e) {
+        this.posts = previousPosts;
         this.setError('Failed to delete the post.');
         console.error(e);
       } finally {
@@ -97,15 +94,22 @@ export const usePostStore = defineStore('post', {
     async updatePost(form: UpdatePostRequest) {
       this.setLoading(true);
       this.clearError();
+      
+      const previousPosts = [...this.posts];
+      
+      this.posts = this.posts.map(post => 
+          post.id === form.id ? { ...post, ...form } : post
+      );
+
       try {
         const { data } = await usePostApi().updatePost(form);
         if (data) {
-          // 更新文章列表中的对应文章
           this.posts = this.posts.map(post => 
-            post.id === data.id ? data : post
+              post.id === data.id ? data : post
           );
         }
       } catch (e) {
+        this.posts = previousPosts;
         this.setError('Failed to update the post.');
         console.error(e);
       } finally {

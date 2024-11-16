@@ -114,10 +114,8 @@ const handlePageChange = (page: number) => {
 
 // 组件挂载时获取文章列表
 onMounted(async () => {
-  console.log('Initial loading:', loading.value)  // 初始值是否为 true？
   const store = usePostStore()
   await store.getAllPosts()
-  console.log('Final loading:', loading.value)  // 加载完成后是否为 false？
 })
 </script>
 

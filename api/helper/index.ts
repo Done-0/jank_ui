@@ -16,7 +16,7 @@ export const isApiResponse = <T>(data: unknown): data is ApiResponse<T> => {
         typeof response.msg === 'string' &&
         'data' in response &&
         typeof response.requestId === 'string' &&
-        typeof response.timeStamp === 'number'
+        typeof response.timestamp === 'number'
     );
 };
 

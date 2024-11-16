@@ -1,3 +1,4 @@
+// api/modules/post.ts
 import { useHttp } from '~/api/http'; // 引入封装的 HTTP 请求工具
 import { API_ROUTES } from '~/api/route'; // 引入 API 路由配置
 import type { Post, CreatePostRequest, GetPostRequest, DeletePostRequest, UpdatePostRequest } from '~/types/post'; // 引入相关类型
