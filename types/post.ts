@@ -16,7 +16,7 @@ export interface Post {
     title: string;           // 文章标题
     image: string;           // 文章图片
     visibility: string;      // 文章可见性
-    contentHTML: string;     // 文章内容HTML
+    contentHtml: string;     // 文章内容HTML
     summary?: string | null; // 文章摘要
 }
 

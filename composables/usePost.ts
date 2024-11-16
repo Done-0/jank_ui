@@ -6,24 +6,15 @@ export function usePost() {
     const store = usePostStore();
     const { post, posts, loading, error } = storeToRefs(store);
 
-    const handleError = (e: unknown, message: string) => {
-        console.error(message, e);
-        store.setError(message);
-    };
-
-    const refreshPosts = async () => {
-        try {
-            await store.getAllPosts();
-        } catch (e) {
-            handleError(e, 'Error refreshing posts');
-        }
-    };
-
     return {
         post,
         posts, 
         loading, 
-        error, 
-        refreshPosts,
+        error,
+        createPost: store.createPost,
+        getPost: store.getPost,
+        getAllPosts: store.getAllPosts,
+        deletePost: store.deletePost,
+        updatePost: store.updatePost,
     };
 }

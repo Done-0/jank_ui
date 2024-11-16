@@ -7,7 +7,7 @@ export const usePostStore = defineStore('post', {
   state: () => ({
     post: null as Post | null,
     posts: [] as Post[],
-    loading: false,
+    loading: true as boolean,
     error: null as string | null,
   }),
   actions: {
@@ -27,11 +27,10 @@ export const usePostStore = defineStore('post', {
       try {
         const { data } = await usePostApi().createPost(form);
         if (data) {
-          this.post = data; // 存储新创建的文章
+          this.post = data;
         }
       } catch (e) {
-        this.setError('Failed to create post.');
-        console.error(e);
+        this.setError('Failed to create post:' + e);
       } finally {
         this.setLoading(false);
       }
@@ -43,11 +42,10 @@ export const usePostStore = defineStore('post', {
       try {
         const { data } = await usePostApi().getPost(form);
         if (data) {
-          this.post = data; // 存储获取到的单篇文章
+          this.post = data;
         }
       } catch (e) {
-        this.setError('Failed to fetch the post.');
-        console.error(e);
+        this.setError('Failed to fetch the post:' + e);
       } finally {
         this.setLoading(false);
       }
@@ -61,13 +59,13 @@ export const usePostStore = defineStore('post', {
         const data = response?.data?.data;
         if (Array.isArray(data)) {
           this.posts = data;
+          console.log(data)
           localStorage.setItem(STORAGE_KEYS.POST, JSON.stringify(data));
         } else {
           this.setError('Invalid data format');
         }
       } catch (e) {
-        this.setError('Failed to fetch all posts.');
-        console.error(e);
+        this.setError('Failed to fetch all posts:' + e);
       } finally {
         this.setLoading(false);
       }
@@ -84,8 +82,7 @@ export const usePostStore = defineStore('post', {
         await usePostApi().deletePost(form);
       } catch (e) {
         this.posts = previousPosts;
-        this.setError('Failed to delete the post.');
-        console.error(e);
+        this.setError('Failed to delete the post:' + e);
       } finally {
         this.setLoading(false);
       }
@@ -110,8 +107,7 @@ export const usePostStore = defineStore('post', {
         }
       } catch (e) {
         this.posts = previousPosts;
-        this.setError('Failed to update the post.');
-        console.error(e);
+        this.setError('Failed to update the post:' + e);
       } finally {
         this.setLoading(false);
       }

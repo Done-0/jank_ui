@@ -12,119 +12,27 @@ import type {
 } from '~/types/auth';
 import { STORAGE_KEYS } from '~/types/auth';
 
-export interface AuthState {
-  user: User | null;                   // 当前用户信息
-  accessToken: string;                 // 访问令牌
-  refreshToken: string;                // 刷新令牌
-  loading: boolean;                    // 加载状态
-}
-
 export const useAuthStore = defineStore('auth', {
-  state: (): AuthState => ({
-    user: null,
+  state: () => ({
+    user: null as User | null,
     accessToken: '',
     refreshToken: '',
-    loading: false
+    loading: true as boolean,
+    error: null as string | null,
   }),
 
-  getters: {
-    isLoggedIn(state: AuthState): boolean {
-      return !!state.accessToken && !!state.user;
-    }
-  },
-
   actions: {
-    // 登录
-    async login(form: LoginRequest): Promise<void> {
-      this.loading = true;
-      try {
-        const response = await useAuthApi().login(form);
-        if (response.data) {
-          const token = response.data as LoginResponse;
-          this.accessToken = token.accessToken;
-          this.refreshToken = token.refreshToken;
-          
-          if (typeof window !== 'undefined') {
-            localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, token.accessToken);
-            localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, token.refreshToken);
-          }
-          
-          await this.fetchProfile();
-        }
-      } catch (error) {
-        console.error('Login failed:', error);
-        throw error;
-      } finally {
-        this.loading = false;
-      }
+    setLoading(loading: boolean) {
+      this.loading = loading;
     },
-
-    // 注册
-    async register(form: RegisterRequest): Promise<void> {
-      this.loading = true;
-      try {
-        const response = await useAuthApi().register(form);
-        if (response.data) {
-          const token = response.data as RegisterResponse;
-          this.accessToken = token.accessToken;
-          this.refreshToken = token.refreshToken;
-          
-          if (typeof window !== 'undefined') {
-            localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, token.accessToken);
-            localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, token.refreshToken);
-          }
-          
-          await this.fetchProfile();
-        }
-      } catch (error) {
-        console.error('Registration failed:', error);
-        throw error;
-      } finally {
-        this.loading = false;
-      }
+    setError(error: string | null) {
+      this.error = error;
     },
-
-    // 登出
-    async logout(): Promise<void> {
-      try {
-        await useAuthApi().logout();
-      } catch (error) {
-        console.error('Logout failed:', error);
-      } finally {
-        this.accessToken = '';
-        this.refreshToken = '';
-        this.user = null;
-        
-        if (typeof window !== 'undefined') {
-          localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
-          localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
-          localStorage.removeItem(STORAGE_KEYS.USER);
-        }
-      }
+    clearError() {
+      this.error = null;
     },
-
-    // 获取用户资料
-    async fetchProfile(): Promise<void> {
-      this.loading = true;
-      try {
-        const response = await useAuthApi().getProfile();
-        if (response.data) {
-          this.user = response.data as ProfileResponse;
-          
-          if (typeof window !== 'undefined') {
-            localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(this.user));
-          }
-        }
-      } catch (error) {
-        console.error('Failed to fetch profile:', error);
-        throw error;
-      } finally {
-        this.loading = false;
-      }
-    },
-
     // 初始化存储
-    initializeFromStorage(): void {
+    initializeFromStorage() {
       if (typeof window === 'undefined') return;
       
       try {
@@ -141,30 +49,111 @@ export const useAuthStore = defineStore('auth', {
           const userData = JSON.parse(userJson);
           this.user = userData as User;
         }
-      } catch (error) {
-        console.error('Failed to initialize auth store:', error);
+      } catch (e) {
+        this.setError('Failed to initialize from storage:' + e);
         this.user = null;
         this.accessToken = '';
         this.refreshToken = '';
       }
     },
+    
+    // 登录
+    async login(form: LoginRequest) {
+      this.setLoading(true);
+      try {
+        const response = await useAuthApi().login(form);
+        if (response.data) {
+          const token = response.data as LoginResponse;
+          if (token) {
+            this.accessToken = token.accessToken;
+            this.refreshToken = token.refreshToken;
+            localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, token.accessToken);
+            localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, token.refreshToken);
+          }          
+          await this.fetchProfile();
+        }
+      } catch (e) {
+        this.setError('Failed to login in:' + e);
+      } finally {
+        this.setLoading(false);
+      }
+    },
+
+    // 注册
+    async register(form: RegisterRequest): Promise<void> {
+      this.setLoading(true);
+      try {
+        const response = await useAuthApi().register(form);
+        if (response.data) {
+          const token = response.data as RegisterResponse;
+          if (token) {
+            this.accessToken = token.accessToken;
+            this.refreshToken = token.refreshToken;
+            localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, token.accessToken);
+            localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, token.refreshToken);
+          }
+          await this.fetchProfile();
+        }
+      } catch (e) {
+        this.setError('Failed to register:' + e);
+      } finally {
+        this.setLoading(false);
+      }
+    },
+
+    // 登出
+    async logout() {
+      try {
+        await useAuthApi().logout();
+      } catch (e) {
+        this.setError('Failed to register:' + e);
+      } finally {
+        this.accessToken = '';
+        this.refreshToken = '';
+        this.user = null;
+        
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
+          localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
+          localStorage.removeItem(STORAGE_KEYS.USER);
+        }
+      }
+    },
+
+    // 获取用户资料
+    async fetchProfile() {
+      this.setLoading(true);
+      try {
+        const response = await useAuthApi().getProfile();
+        if (response.data) {
+          this.user = response.data as ProfileResponse;
+          
+          if (typeof window !== 'undefined') {
+            localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(this.user));
+          }
+        }
+      } catch (e) {
+        this.setError('Failed to get profile:' + e);
+      } finally {
+        this.setLoading(false);
+      }
+    },
 
     // 发送邮箱验证码
-    async sendEmailVerificationCode(email: string): Promise<void> {
-      this.loading = true;
+    async sendEmailVerificationCode(email: string) {
+      this.setLoading(true);
       try {
         await useAuthApi().sendEmailVerificationCode({ email });
-      } catch (error) {
-        console.error('Failed to send verification code:', error);
-        throw error;
+      } catch (e) {
+        this.setError('Failed to send email verification code:' + e);
       } finally {
-        this.loading = false;
+        this.setLoading(false);
       }
     },
 
     // 生成图片验证码
-    async genImgVerification(email: string): Promise<string | null> {
-      this.loading = true;
+    async genImgVerification(email: string) {
+      this.setLoading(true);
       try {
         const response = await useAuthApi().genImgVerification({ email });
         if (response.data) {
@@ -172,11 +161,10 @@ export const useAuthStore = defineStore('auth', {
           return data.imgBase64;
         }
         return null;
-      } catch (error) {
-        console.error('Failed to generate image verification:', error);
-        throw error;
+      } catch (e) {
+        this.setError('Failed to generate image verification code:' + e);
       } finally {
-        this.loading = false;
+        this.setLoading(false);
       }
     }
   }

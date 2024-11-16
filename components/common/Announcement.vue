@@ -52,14 +52,6 @@
 import { computed } from 'vue'
 import { usePost } from '~/composables/usePost'
 
-const props = withDefaults(defineProps<{
-  leftBgImage?: string
-  rightBgImage?: string
-}>(), {
-  leftBgImage: '',
-  rightBgImage: ''
-})
-
 const { posts } = usePost()
 
 // 计算属性：获取热门文章（这里假设取第一篇）
@@ -69,14 +61,14 @@ const hotPost = computed(() => posts.value?.[0] || null)
 const recommendedPost = computed(() => posts.value?.[1] || null)
 
 // 背景样式计算属性
-const leftBgStyle = computed(() => props.leftBgImage ? {
-  backgroundImage: `url(${props.leftBgImage})`,
+const leftBgStyle = computed(() => hotPost.value ? {
+  backgroundImage: `url(${hotPost.value.image})`,
   backgroundSize: 'cover',
   backgroundPosition: 'center'
 } : {})
 
-const rightBgStyle = computed(() => props.rightBgImage ? {
-  backgroundImage: `url(${props.rightBgImage})`,
+const rightBgStyle = computed(() => hotPost.value ? {
+  backgroundImage: `url(${recommendedPost.value.image})`,
   backgroundSize: 'cover',
   backgroundPosition: 'center'
 } : {})

@@ -4,15 +4,17 @@ import { storeToRefs } from 'pinia';
 
 export function useAuth() {
     const store = useAuthStore();
-    const { user, loading, isLoggedIn } = storeToRefs(store);
+    const { user, loading } = storeToRefs(store);
 
     return {
         user,
         loading,
-        isLoggedIn,
-        login: store.login.bind(store),
-        logout: store.logout.bind(store),
-        register: store.register.bind(store),
-        fetchProfile: store.fetchProfile.bind(store),
+        initializeFromStorage: store.initializeFromStorage,  
+        login: store.login,
+        register: store.register,
+        logout: store.logout,
+        fetchProfile: store.fetchProfile,
+        sendEmailVerificationCode: store.sendEmailVerificationCode,
+        genImgVerification: store.genImgVerification,
     };
 }
