@@ -3,6 +3,7 @@
  * @file http-client.ts
  */
 
+import { $fetch } from 'ofetch';
 import type { UseFetchOptions } from '#app';
 import { ApiError, NetworkError, AuthError, ValidationError, UnknownError } from './errors';
 import type { ApiResponse, ApiConfig, ResponseInterceptor, RetryConfig } from './types';
@@ -128,52 +129,57 @@ export class HttpClient {
             const baseURL = this.runtimeConfig.public.apiBase;
             const fullUrl = url.startsWith('http') ? url : `${baseURL}${url}`;
 
-            const fetchOptions: UseFetchOptions<ApiResponse<TResponse>> = {
-                ...options,
-                transform: (response: unknown): ApiResponse<TResponse> => {
-                    if (!response) {
+            try {
+                    const fetchOptions = {
+                        method: String(options.method),
+                        headers: options.headers as HeadersInit,
+                        body: options.body,
+                        query: options.query,
+                        timeout: options.timeout as number,
+                    };
+        
+                    const response = await $fetch<ApiResponse<TResponse>>(fullUrl, fetchOptions);
+
+                if (!response) {
+                    return {
+                        code: ApiStatusCode.ERROR,
+                        msg: API_ERROR_MESSAGES[ApiStatusCode.ERROR],
+                        data: null,
+                        requestId: generateRequestId(),
+                        timestamp: formatTimestamp(Date.now())
+                    } as ApiResponse<TResponse>;
+                }
+
+                if (typeof response === 'string') {
+                    try {
+                        return JSON.parse(response);
+                    } catch {
                         return {
                             code: ApiStatusCode.ERROR,
-                            msg: API_ERROR_MESSAGES[ApiStatusCode.ERROR],
+                            msg: response,
                             data: null,
                             requestId: generateRequestId(),
                             timestamp: formatTimestamp(Date.now())
                         } as ApiResponse<TResponse>;
                     }
-                    if (typeof response === 'string') {
-                        try {
-                            return JSON.parse(response);
-                        } catch {
-                            return {
-                                code: ApiStatusCode.ERROR,
-                                msg: response,
-                                data: null,
-                                requestId: generateRequestId(),
-                                timestamp: formatTimestamp(Date.now())
-                            } as ApiResponse<TResponse>;
-                        }
-                    }
-                    if (isApiResponse(response)) {
-                        return response as ApiResponse<TResponse>;
-                    }
-                    return {
-                        code: ApiStatusCode.SUCCESS,
-                        msg: 'OK',
-                        data: response as TResponse,
-                        requestId: generateRequestId(), 
-                        timestamp: formatTimestamp(Date.now())
-                    };
-                },
-                onResponseError({ response }) {
-                    console.error('Response error:', {
-                        status: response.status,
-                        statusText: response.statusText,
-                    });
                 }
-            };
 
-            const { data, error } = await useFetch<ApiResponse<TResponse>>(fullUrl, fetchOptions);
-            return await this.processResponse(data, error);
+                if (isApiResponse(response)) {
+                    return response as ApiResponse<TResponse>;
+                }
+
+                return {
+                    code: ApiStatusCode.SUCCESS,
+                    msg: 'OK',
+                    data: response as TResponse,
+                    requestId: generateRequestId(),
+                    timestamp: formatTimestamp(Date.now())
+                };
+
+            } catch (error) {
+                console.error('Response error:', error);
+                throw error;
+            }
         };
 
         const retryConfig = this.getRetryConfig();
@@ -185,16 +191,10 @@ export class HttpClient {
         );
     }
 
-    private async processResponse<TResponse>(
-        data: Ref<ApiResponse<TResponse> | null>,
-        error: Ref<Error | null>
+    private async processDirectResponse<TResponse>(
+        response: ApiResponse<TResponse>
     ): Promise<ApiResponse<TResponse>> {
-        if (error.value) {
-            console.error('Response error:', error.value);
-            throw error.value;
-        }
-
-        if (!data.value) {
+        if (!response) {
             return {
                 code: ApiStatusCode.ERROR,
                 msg: API_ERROR_MESSAGES[ApiStatusCode.ERROR],
@@ -202,7 +202,7 @@ export class HttpClient {
             } as ApiResponse<TResponse>;
         }
 
-        let result = data.value;
+        let result = response;
 
         try {
             if (this.responseInterceptor?.onSuccess) {
@@ -210,14 +210,14 @@ export class HttpClient {
             }
 
             if (!('code' in result) && !('msg' in result)) {
-              return {
-                  code: ApiStatusCode.SUCCESS,
-                  msg: 'OK',
-                  data: result as unknown as TResponse,
-                  requestId: generateRequestId(),
-                  timestamp: formatTimestamp(Date.now())
-              };
-          }
+                return {
+                    code: ApiStatusCode.SUCCESS,
+                    msg: 'OK',
+                    data: result as unknown as TResponse,
+                    requestId: generateRequestId(),
+                    timestamp: formatTimestamp(Date.now())
+                };
+            }
 
             if (!isSuccessStatus(result.code)) {
                 throw new ApiError(result.code, result.msg || 'Request failed', result.data);
@@ -261,7 +261,6 @@ export class HttpClient {
         const errorType = getErrorType(error);
         const errorMessage = formatError(error);
 
-        // 尝试从错误中提取有用信息
         const errorResponse = error instanceof ApiError ? error : null;
         const statusCode = errorResponse?.code || ApiStatusCode.ERROR;
         const message = errorResponse?.message || errorMessage;

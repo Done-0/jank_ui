@@ -9,7 +9,7 @@ export function useAuth() {
     return {
         user,
         loading,
-        initializeFromStorage: store.initializeFromStorage,  
+        initializeFromStorage: store.initializeFromStorage,
         login: store.login,
         register: store.register,
         logout: store.logout,

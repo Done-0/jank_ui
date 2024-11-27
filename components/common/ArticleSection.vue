@@ -14,12 +14,12 @@
       <!-- Articles Section -->
       <CardContent v-else class="space-y-6 p-6">
         <article
-v-for="post in paginatedPosts" :key="post.id"
+          v-for="post in paginatedPosts" :key="post.id"
           class=".card-hover group flex h-48 overflow-hidden rounded-lg border bg-card hover:bg-accent/50 hover:shadow-xl">
           <!-- Article Image -->
           <div class="relative w-1/3 overflow-hidden">
             <img
-:src="post.image" :alt="post.title"
+              :src="post.image" :alt="post.title"
               class="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-105">
             <div
               class="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-80" />
@@ -75,9 +75,9 @@ import { ref, computed } from 'vue'
 import { usePost } from '~/composables/usePost'
 
 // 分页相关数据
-const ITEMS_PER_PAGE = 5 // 每页显示的文章数
+const ITEMS_PER_PAGE = 5    // 每页显示的文章数
 const MAX_VISIBLE_PAGES = 5 // 最大显示页码数
-const currentPage = ref(1) // 当前页码
+const currentPage = ref(1)  // 当前页码
 const { posts, loading, error } = usePost()
 
 // 获取文章摘要

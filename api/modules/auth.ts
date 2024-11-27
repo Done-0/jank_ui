@@ -67,7 +67,7 @@ export const useAuthApi = () => {
          */
         sendEmailVerificationCode(data: EmailVerificationRequest): Promise<ApiResponse<void>> {
             return http.get(
-                `${API_ROUTES.ACCOUNT.GEN_IMG_VERIFICATION}?email=${encodeURIComponent(data.email)}`
+                `${API_ROUTES.ACCOUNT.SEND_EMAIL_VERIFICATION_CODE}?email=${encodeURIComponent(data.email)}`
             );
         },
 
@@ -78,7 +78,7 @@ export const useAuthApi = () => {
             data: ImgVerificationRequest
         ): Promise<ApiResponse<ImgVerificationResponse>> {
             return http.get(
-                `${API_ROUTES.ACCOUNT.GEN_IMG_VERIFICATION}?email=${encodeURIComponent(data.email)}`
+                `${API_ROUTES.ACCOUNT.GEN_IMG_VERIFICATION_CODE}?email=${encodeURIComponent(data.email)}`
             );
         }
     };

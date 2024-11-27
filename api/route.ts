@@ -9,8 +9,8 @@ export const API_ROUTES = {
         LOGOUT: '/account/logoutAccount',
         PROFILE: '/account/getUserProfile',
         RESET_PASSWORD: '/account/resetPassword',
-        SEND_EMAIL_VERIFICATION_CODE: 'account/sendEmailVerificationCode',
-        GEN_IMG_VERIFICATION: 'account/genImgVerification',
+        SEND_EMAIL_VERIFICATION_CODE: '/account/sendEmailVerificationCode',
+        GEN_IMG_VERIFICATION_CODE: '/account/genImgVerificationCode',
     },
     POST: {
         GET_ALL_POSTS: '/post/getAllPosts',

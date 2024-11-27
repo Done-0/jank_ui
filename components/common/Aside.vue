@@ -18,12 +18,14 @@
           url: 'https://haowallpaper.com/link/common/file/previewFileImg/15430254183092544'
         }
       ]" />
+      <CommonTableOfContents />
     <!-- <Calendar v-model="value" :weekday-format="'short'" class="rounded-md border" /> -->
   </section>
 </template>
 
 <script setup lang="ts">
 import { CardInk } from '~/components/ui/card'
+import  CommonTableOfContents  from '~/components/common/TableOfContents.vue'
 // import { Calendar } from '~/components/ui/calendar'
 // import { type DateValue, getLocalTimeZone, today } from '@internationalized/date'
 // import { type Ref, ref } from 'vue'

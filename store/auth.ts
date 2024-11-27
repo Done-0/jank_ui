@@ -8,7 +8,6 @@ import type {
   LoginResponse,
   RegisterResponse,
   ProfileResponse,
-  ImgVerificationResponse
 } from '~/types/auth';
 import { STORAGE_KEYS } from '~/types/auth';
 
@@ -17,7 +16,7 @@ export const useAuthStore = defineStore('auth', {
     user: null as User | null,
     accessToken: '',
     refreshToken: '',
-    loading: true as boolean,
+    loading: null as boolean | null,
     error: null as string | null,
   }),
 
@@ -56,7 +55,7 @@ export const useAuthStore = defineStore('auth', {
         this.refreshToken = '';
       }
     },
-    
+
     // 登录
     async login(form: LoginRequest) {
       this.setLoading(true);
@@ -156,13 +155,14 @@ export const useAuthStore = defineStore('auth', {
       this.setLoading(true);
       try {
         const response = await useAuthApi().genImgVerification({ email });
-        if (response.data) {
-          const data = response.data as ImgVerificationResponse;
-          return data.imgBase64;
+        if (response.data?.imgBase64) {
+          // 直接返回 base64 字符串
+          return response.data?.imgBase64;
         }
         return null;
       } catch (e) {
         this.setError('Failed to generate image verification code:' + e);
+        return null;
       } finally {
         this.setLoading(false);
       }

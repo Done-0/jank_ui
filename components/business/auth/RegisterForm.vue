@@ -7,20 +7,20 @@
       </DialogDescription>
     </DialogHeader>
 
-    <Form :form="form">
-      <form class="space-y-4" @submit="onSubmit">
+    <Form :form="form" :submit="onSubmit">
+      <form class="space-y-4">
+
         <FormField v-slot="{ field, errors }" name="email">
           <FormItem>
             <FormLabel>邮箱</FormLabel>
             <FormControl>
               <Input 
-                v-model="field.value" 
-                type="email" 
+                v-bind="field"
+                type="email"
                 placeholder="请输入邮箱" 
-                autocomplete="email"
-                :disabled="authStore.loading"
-                @blur="field.onBlur"
-                @input="handleEmailChange"
+                autocomplete="email" 
+                :disabled="!!loading" 
+                @input="handleEmailInput"
               />
             </FormControl>
             <FormMessage>{{ errors[0] }}</FormMessage>
@@ -32,12 +32,11 @@
             <FormLabel>密码</FormLabel>
             <FormControl>
               <Input 
-                v-model="field.value" 
-                type="password" 
-                placeholder="请输入密码" 
+                v-bind="field"
+                type="password"
+                placeholder="请输入密码"
                 autocomplete="new-password"
-                :disabled="authStore.loading"
-                @blur="field.onBlur" 
+                :disabled="!!loading"
               />
             </FormControl>
             <FormMessage>{{ errors[0] }}</FormMessage>
@@ -49,39 +48,13 @@
             <FormLabel>确认密码</FormLabel>
             <FormControl>
               <Input 
-                v-model="field.value" 
-                type="password" 
-                placeholder="请再次输入密码" 
+                v-bind="field"
+                type="password"
+                placeholder="请再次输入密码"
                 autocomplete="new-password"
-                :disabled="authStore.loading"
-                @blur="field.onBlur" 
+                :disabled="!!loading"
               />
             </FormControl>
-            <FormMessage>{{ errors[0] }}</FormMessage>
-          </FormItem>
-        </FormField>
-
-        <FormField v-slot="{ field, errors }" name="email_verification_code">
-          <FormItem>
-            <FormLabel>邮箱验证码</FormLabel>
-            <div class="flex space-x-2">
-              <FormControl>
-                <Input 
-                  v-model="field.value" 
-                  placeholder="请输入邮箱验证码" 
-                  :disabled="authStore.loading"
-                  @blur="field.onBlur"
-                />
-              </FormControl>
-              <Button 
-                type="button" 
-                variant="outline"
-                :disabled="!canSendCode || authStore.loading"
-                @click="sendVerificationCode"
-              >
-                {{ countdown > 0 ? `${countdown}秒后重试` : '获取验证码' }}
-              </Button>
-            </div>
             <FormMessage>{{ errors[0] }}</FormMessage>
           </FormItem>
         </FormField>
@@ -92,26 +65,60 @@
             <div class="flex space-x-2">
               <FormControl>
                 <Input 
-                  v-model="field.value" 
-                  placeholder="请输入验证码" 
-                  class="flex-1"
+                  v-bind="field"
+                  placeholder="请输入验证码"
+                  class="flex-1" 
                   maxlength="4"
-                  :disabled="authStore.loading"
-                  @blur="field.onBlur"
+                  :disabled="!!loading"
                 />
               </FormControl>
               <div 
-                class="h-10 w-32 cursor-pointer overflow-hidden rounded-md border"
-                @click="refreshCaptcha"
+                class="h-10 w-32 cursor-pointer overflow-hidden rounded-md border flex items-center justify-center bg-white"
+                :class="{ 'opacity-50 cursor-not-allowed': !isEmailValid || loading }"
+                @click="handleGetCaptcha"
               >
-                <img 
-                  v-if="captchaImage"
-                  :src="captchaImage" 
-                  alt="验证码" 
-                  class="h-full w-full object-cover"
-                  :class="{ 'opacity-50': authStore.loading }"
-                >
+                <template v-if="loading">
+                  <span class="text-sm text-gray-500">加载中...</span>
+                </template>
+                <template v-else-if="imgVerificationCode">
+                  <img 
+                    :src="processedImgSrc"
+                    alt="验证码" 
+                    class="h-full w-full object-cover"
+                    @error="handleImageError"
+                  >
+                </template>
+                <template v-else>
+                  <span class="text-sm text-gray-500">获取验证码</span>
+                </template>
               </div>
+            </div>
+            <FormMessage>{{ errors[0] }}</FormMessage>
+          </FormItem>
+        </FormField>
+
+        <FormField v-slot="{ field, errors }" name="email_verification_code">
+          <FormItem>
+            <FormLabel>邮箱验证码</FormLabel>
+            <div class="flex space-x-2">
+              <FormControl>
+                <Input 
+                  v-bind="field"
+                  placeholder="请输入邮箱验证码"
+                  class="flex-1" 
+                  maxlength="6"
+                  :disabled="!!loading"
+                />
+              </FormControl>
+              <Button 
+                type="button" 
+                class="h-10 w-32"
+                variant="outline"
+                :disabled="!isEmailValid || loading || countdown > 0"
+                @click="handleSendEmailCode"
+              >
+                {{ countdown > 0 ? `${countdown}秒后重试` : '获取验证码' }}
+              </Button>
             </div>
             <FormMessage>{{ errors[0] }}</FormMessage>
           </FormItem>
@@ -121,12 +128,16 @@
           <FormItem class="flex items-center space-x-2">
             <FormControl>
               <Checkbox 
-                v-model="field.value"
-                :disabled="authStore.loading" 
+                v-bind="field"
+                :disabled="!!loading"
+                class="mt-2"
               />
             </FormControl>
             <div class="leading-none">
-              <FormLabel class="text-sm font-normal">我同意条款和条件</FormLabel>
+              <FormLabel class="text-sm font-normal">
+                我同意
+                <a href="#" class="text-primary hover:underline">条款和条件</a>
+              </FormLabel>
             </div>
           </FormItem>
         </FormField>
@@ -134,15 +145,20 @@
         <Button 
           type="submit" 
           class="w-full"
-          :disabled="authStore.loading"
+          :disabled="loading || !isFormValid"
         >
-          {{ authStore.loading ? '注册中...' : '注册' }}
+          {{ loading ? '注册中...' : '注册' }}
         </Button>
       </form>
     </Form>
 
     <div class="text-center text-sm">
-      <a href="#" class="text-primary hover:underline" @click.prevent="switchToLogin">
+      <a 
+        href="#" 
+        class="text-primary hover:underline" 
+        :class="{ 'pointer-events-none opacity-50': loading }"
+        @click.prevent="emit('switch-to-login')"
+      >
         已有账号？立即登录
       </a>
     </div>
@@ -150,7 +166,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onUnmounted } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { Button } from '~/components/ui/button'
 import { Checkbox } from '~/components/ui/checkbox'
 import {
@@ -171,176 +187,193 @@ import {
 import { toTypedSchema } from '@vee-validate/zod'
 import { useForm } from 'vee-validate'
 import * as z from 'zod'
-import { useAuthStore } from '~/store/auth'
-import type { RegisterRequest, EmailVerificationRequest } from '~/types/auth'
+import type { RegisterRequest } from '~/types/auth'
 
-// 发射事件类型定义
+const auth = useAuth()
+const { loading, register, fetchProfile, genImgVerification, sendEmailVerificationCode } = auth
+
+const zodSchema = z.object({
+  email: z.string().min(1, '邮箱是必填项').email('请输入有效的邮箱'),
+  password: z.string().min(6, '密码至少6个字符').max(20, '密码最多20个字符'),
+  confirmPassword: z.string().min(6, '密码至少6个字符').max(20, '密码最多20个字符'),
+  img_verification_code: z.string().length(4, '验证码必须是4位'),
+  email_verification_code: z.string().length(6, '邮箱验证码必须是6位'),
+  agreeToTerms: z.boolean().refine(val => val, '请同意条款和条件'),
+}).superRefine((data, ctx) => {
+  if (data.password !== data.confirmPassword) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['confirmPassword'],
+      message: '两次输入的密码不一致',
+    })
+  }
+})
+
+const formSchema = toTypedSchema(zodSchema)
+
 const emit = defineEmits<{
   (e: 'success' | 'switch-to-login'): void
 }>()
 
-// 表单值类型定义
-interface RegisterFormValues {
-  email: string
-  password: string
-  confirmPassword: string
-  img_verification_code: string
-  email_verification_code: string
-  agreeToTerms: boolean
-  nickname: string
-}
-
-const captchaImage = ref<string>('')
-const currentEmail = ref('')
+const imgVerificationCode = ref<string>('')
 const countdown = ref(0)
-const countdownTimer = ref<NodeJS.Timeout>()
+const COOLDOWN_TIME = 1000
+const lastRefreshTime = ref(0)
 
-const canSendCode = computed(() => {
-  return form.values.email && 
-         form.values.img_verification_code && 
-         countdown.value === 0 &&
-         !authStore.loading
-})
-
-const formSchema = toTypedSchema(
-  z.object({
-    email: z.string()
-      .min(1, '邮箱是必填项')
-      .email('请输入有效的邮箱地址'),
-    nickname: z.string()
-      .min(1, '昵称是必填项'),
-    password: z.string()
-      .min(6, '密码至少6个字符')
-      .max(20, '密码最多20个字符'),
-    confirmPassword: z.string()
-      .min(6, '密码至少6个字符')
-      .max(20, '密码最多20个字符'),
-    img_verification_code: z.string()
-      .length(4, '验证码必须是4位'),
-    email_verification_code: z.string()
-      .length(6, '邮箱验证码必须是6位'),
-    agreeToTerms: z.boolean()
-      .refine(val => val === true, '必须同意条款'),
-  }).superRefine((data, ctx) => {
-    if (data.confirmPassword !== data.password) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['confirmPassword'],
-        message: '密码不匹配',
-      })
-    }
-  })
-)
-
-const initialValues: RegisterFormValues = {
-  email: '',
-  nickname: '',
-  password: '',
-  confirmPassword: '',
-  img_verification_code: '',
-  email_verification_code: '',
-  agreeToTerms: false,
-}
-
-const form = useForm<RegisterFormValues>({
+const form = useForm<RegisterRequest>({
   validationSchema: formSchema,
-  initialValues,
+  initialValues: {
+    email: '',
+    password: '',
+    confirmPassword: '',
+    img_verification_code: '',
+    email_verification_code: '',
+    agreeToTerms: false,
+  },
 })
 
-const authStore = useAuthStore()
+const isFormValid = computed(() => {
+  const { email, password, confirmPassword, img_verification_code, email_verification_code, agreeToTerms } = form.values
+  const isValid = email && password && confirmPassword && 
+         img_verification_code && email_verification_code && agreeToTerms &&
+         isEmailValid.value &&
+         password.length >= 6 &&
+         password === confirmPassword &&
+         Object.keys(form.errors).length === 0
+  console.log('Form validity:', isValid)
+  return isValid
+})
 
-const handleEmailChange = async (event: Event) => {
-  const email = (event.target as HTMLInputElement).value
-  if (email !== currentEmail.value) {
-    currentEmail.value = email
-    await refreshCaptcha()
-  }
+const isEmailValid = computed(() => {
+  const email = form.values.email
+  return Boolean(email && /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/.test(email))
+})
+
+const processedImgSrc = computed(() => {
+  if (!imgVerificationCode.value) return ''
+  return imgVerificationCode.value.startsWith('data:image') 
+    ? imgVerificationCode.value 
+    : `data:image/png;base64,${imgVerificationCode.value}`
+})
+
+const handleImageError = () => {
+  console.error('验证码图片加载失败')
+  imgVerificationCode.value = ''
+  showToast('验证码加载失败', '请点击重新获取', 'destructive')
 }
 
-const refreshCaptcha = async () => {
-  if (!currentEmail.value) return
+const handleGetCaptcha = async () => {
+  const now = Date.now()
+  if (now - lastRefreshTime.value < COOLDOWN_TIME) {
+    showToast('操作过于频繁', '请稍后再试', 'destructive')
+    return
+  }
+
+  if (!isEmailValid.value || loading.value) {
+    showToast('无法获取验证码', '请确保邮箱格式正确', 'destructive')
+    return
+  }
+
+  lastRefreshTime.value = now
   
   try {
-    const base64Image = await authStore.genImgVerification(currentEmail.value)
+    const base64Image = await genImgVerification(form.values.email)
     if (base64Image) {
-      captchaImage.value = `data:image/png;base64,${base64Image}`
+      imgVerificationCode.value = base64Image
+      form.setFieldValue('img_verification_code', '')
+    } else {
+      throw new Error('获取验证码失败')
     }
   } catch (error) {
-    console.error('Failed to fetch captcha:', error)
-    toast({
-      title: '获取验证码失败',
-      description: '请稍后重试',
-      variant: 'destructive',
-    })
+    console.error('获取验证码失败:', error)
+    imgVerificationCode.value = ''
+    showToast(
+      '获取验证码失败',
+      error instanceof Error ? error.message : '请稍后重试',
+      'destructive'
+    )
   }
 }
 
-const startCountdown = () => {
-  countdown.value = 60
-  countdownTimer.value = setInterval(() => {
-    countdown.value--
-    if (countdown.value <= 0) {
-      clearInterval(countdownTimer.value)
-    }
-  }, 1000)
-}
+const handleSendEmailCode = async () => {
+  if (!isEmailValid.value || loading.value || countdown.value > 0) return
 
-const sendVerificationCode = async () => {
-  if (!canSendCode.value || !form.values.email) return
-  
   try {
-    const emailRequest: EmailVerificationRequest = {
-      email: form.values.email
-    }
-    await authStore.sendEmailVerificationCode(emailRequest.email)
-    startCountdown()
-    toast({
-      title: '验证码已发送',
-      description: '请查看您的邮箱',
-    })
+    await sendEmailVerificationCode(form.values.email)
+    countdown.value = 60
+    const timer = setInterval(() => {
+      countdown.value--
+      if (countdown.value <= 0) {
+        clearInterval(timer)
+      }
+    }, 1000)
+    showToast('验证码已发送', '请查看您的邮箱')
   } catch (error) {
-    toast({
-      title: '发送失败',
-      description: error instanceof Error ? error.message : '未知错误',
-      variant: 'destructive',
-    })
+    showToast('发送失败', error instanceof Error ? error.message : '请稍后再试', 'destructive')
   }
 }
 
-const onSubmit = form.handleSubmit(async (values) => {
-  if (authStore.loading) return
+const showToast = (
+  title: string, 
+  description: string, 
+  variant: 'default' | 'destructive' = 'default'
+) => {
+  toast({ title, description, variant })
+}
+
+const resetForm = () => {
+  form.resetForm()
+  imgVerificationCode.value = ''
+}
+
+const handleEmailInput = (event: Event) => {
+  const value = (event.target as HTMLInputElement).value
+  form.setFieldValue('email', value)
+  if (!isEmailValid.value) {
+    imgVerificationCode.value = ''
+  }
+}
+
+const onSubmit = async (values: RegisterRequest) => {
+  console.log('Form submitted:', values)
+  if (loading.value || !isFormValid.value) {
+    console.log('Form submission prevented:', { loading: loading.value, isFormValid: isFormValid.value })
+    return
+  }
 
   try {
+    loading.value = true
     const registerData: RegisterRequest = {
+      nickname: values.nickname || '',
       email: values.email,
-      nickname: values.email, // 使用邮箱作为默认昵称
       password: values.password,
-      img_verification_code: values.img_verification_code,
-      email_verification_code: values.email_verification_code
+      imgVerificationCode: values.img_verification_code as string,
+      emailVerificationCode: values.email_verification_code as string,
+      agreeToTerms: values.agreeToTerms,
     }
-    
-    await authStore.register(registerData)
-    toast({
-      title: '注册成功',
-      description: '账号创建成功！',
-    })
+
+    await register(registerData)
+    await fetchProfile()
+    showToast('注册成功', '欢迎加入！')
     emit('success')
   } catch (error) {
-    toast({
-      title: '注册失败',
-      description: error instanceof Error ? error.message : '未知错误',
-      variant: 'destructive',
-    })
+    console.error('注册失败:', error)
+    await handleGetCaptcha()
+    showToast(
+      '注册失败', 
+      error instanceof Error ? error.message : '未知错误',
+      'destructive'
+    )
+  } finally {
+    loading.value = false
   }
-})
-
-const switchToLogin = () => {
-  emit('switch-to-login')
 }
 
-onUnmounted(() => {
-  if (countdownTimer.value) {
-    clearInterval(countdownTimer.value)
-  }
-})
+watch(() => form.values, (newValues) => {
+  console.log('Form values changed:', newValues)
+  console.log('Form errors:', form.errors)
+  console.log('Is form valid?', isFormValid.value)
+}, { deep: true })
+
+defineExpose({ resetForm })
 </script>
