@@ -4,8 +4,8 @@
 > 该项目灵感源于 [halo](https://www.halo.run/) 博客系统以及 [shadcn-vue](https://www.shadcn-vue.com/)。  
 > 合作可联系作者 `Fender`, QQ: 927171598
 
-![home](https://s2.loli.net/2024/12/02/grqtGcNEdz9Hf8u.png)
-![login](https://s2.loli.net/2024/12/02/Vje2txNmcsEovyI.png)
+![home](./assets/img/home.png)
+![login](./assets/img/login.png)
 
 ```bash
 npm install
