@@ -5,28 +5,28 @@
 
 import { $fetch } from 'ofetch';
 import type { UseFetchOptions } from '#app';
-import { ApiError, NetworkError, AuthError, ValidationError, UnknownError } from './errors';
-import type { ApiResponse, ApiConfig, ResponseInterceptor, RetryConfig } from './types';
-import { ApiStatusCode, ApiErrorType, API_ERROR_MESSAGES } from './types';
-import { 
-    isApiResponse, 
-    getErrorType, 
-    formatError, 
-    retry, 
+import { ApiError, NetworkError, AuthError, ValidationError, UnknownError } from '../errors';
+import type { ApiResponse, ApiConfig, ResponseInterceptor, RetryConfig } from '../types';
+import { ApiStatusCode, ApiErrorType, API_ERROR_MESSAGES } from '../types';
+import {
+    isApiResponse,
+    getErrorType,
+    formatError,
+    retry,
     isSuccessStatus,
     generateRequestId,
     formatTimestamp
-} from './helper';
+} from '../helper';
 
 /**
  * HTTP 请求方法
  */
 export enum HttpMethod {
-    GET    = 'GET',
-    POST   = 'POST',
-    PUT    = 'PUT',
+    GET = 'GET',
+    POST = 'POST',
+    PUT = 'PUT',
     DELETE = 'DELETE',
-    PATCH  = 'PATCH',
+    PATCH = 'PATCH',
 }
 
 /**
@@ -51,7 +51,7 @@ export class HttpClient {
     private readonly runtimeConfig;
     private readonly defaultOptions: CustomFetchOptions;
     private readonly responseInterceptor?: ResponseInterceptor;
-    
+
     constructor(
         private readonly config: HttpClientConfig,
         responseInterceptor?: ResponseInterceptor
@@ -67,7 +67,7 @@ export class HttpClient {
             'Content-Type': 'application/json',
             ...(this.config.headers || {})
         };
-        
+
         return {
             headers,
             timeout: this.config.timeout || 10000,
@@ -110,14 +110,14 @@ export class HttpClient {
                 'Content-Type': 'application/json',
             } as HeadersInit,
         } as UseFetchOptions<ApiResponse<TResponse>>;
-        
+
         if (finalOptions.body && typeof finalOptions.body === 'object') {
             finalOptions.body = JSON.stringify(finalOptions.body);
         }
-        
+
         delete finalOptions.getCachedData;
         delete finalOptions.transform;
-        
+
         return finalOptions;
     }
 
@@ -130,15 +130,15 @@ export class HttpClient {
             const fullUrl = url.startsWith('http') ? url : `${baseURL}${url}`;
 
             try {
-                    const fetchOptions = {
-                        method: String(options.method),
-                        headers: options.headers as HeadersInit,
-                        body: options.body,
-                        query: options.query,
-                        timeout: options.timeout as number,
-                    };
-        
-                    const response = await $fetch<ApiResponse<TResponse>>(fullUrl, fetchOptions);
+                const fetchOptions = {
+                    method: String(options.method),
+                    headers: options.headers as HeadersInit,
+                    body: options.body,
+                    query: options.query,
+                    timeout: options.timeout as number,
+                };
+
+                const response = await $fetch<ApiResponse<TResponse>>(fullUrl, fetchOptions);
 
                 if (!response) {
                     return {
@@ -343,16 +343,16 @@ export const createHttpClient = (
     responseInterceptor?: ResponseInterceptor
 ): HttpClient => {
     const config = useRuntimeConfig();
-    const version = typeof config.public.version === 'string' 
-        ? config.public.version 
+    const version = typeof config.public.version === 'string'
+        ? config.public.version
         : '1.0.0';
-        
+
     const headers: Record<string, string> = {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
         'X-Client-Version': version
     };
-    
+
     return new HttpClient({
         baseURL: config.public.apiBase,
         timeout: 10000,

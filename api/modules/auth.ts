@@ -1,8 +1,8 @@
-import { useHttp } from '~/api/http';
+import { useHttp } from '~/api/http/http';
 import { API_ROUTES } from '~/api/route';
-import type { 
-    LoginRequest, 
-    RegisterRequest, 
+import type {
+    LoginRequest,
+    RegisterRequest,
     LoginResponse,
     RegisterResponse,
     ProfileResponse,
@@ -18,7 +18,7 @@ import type { ApiResponse } from '../types';
  */
 export const useAuthApi = () => {
     const http = useHttp();
-    
+
     return {
         /**
          * 用户登录

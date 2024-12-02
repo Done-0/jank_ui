@@ -2,7 +2,6 @@
     <div class="min-h-screen flex flex-col relative">
       <!-- 顶部导航栏 -->
       <NavBar
-        :is-logged-in="isLoggedIn"
         class="w-full border-b"
         @login="login"
         @logout="logout"
@@ -23,5 +22,5 @@ import NavBar from '~/components/common/NavBar.vue'
 // import Footer from '~/components/common/Footer.vue'
 import { useAuth } from '~/composables/useAuth'
 
-const { isLoggedIn, login, logout } = useAuth()
+const { login, logout } = useAuth()
 </script>
